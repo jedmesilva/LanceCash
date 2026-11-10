@@ -440,7 +440,7 @@ function LanceCash() {
                       <circle className="ring-bg" cx="20" cy="20" r="17" />
                       <circle className="ring-fill" cx="20" cy="20" r="17" pathLength="100" style={{ strokeDashoffset: ended ? 100 : isActive ? 100 - (auctionSeconds / 15) * 100 : 0 }} />
                     </svg>
-                    <b role="timer">{upcoming ? '' : ended ? 0 : auctionSeconds}</b>
+                    <b role="timer">{upcoming ? 15 : ended ? 0 : auctionSeconds}</b>
                   </div>
                   <div className="lc-current-copy">
                     <div className="lc-kicker">{upcoming ? `Leilão #${auction.id}` : `${ended ? 'Leilão encerrado' : 'Lance atual'} #${NUMBER.format(auction.bidCount)}`}</div>
