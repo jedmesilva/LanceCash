@@ -37,6 +37,7 @@ type DemoSession = {
 
 const auctionDuration = 15_000;
 const historyPageSize = 12;
+const UPCOMING_AUCTION_COUNT = 1;
 const bidderNames = [
   "Marina S.",
   "Lucas P.",
@@ -114,6 +115,14 @@ function makeAuction(
   };
 }
 
+function makeUpcomingAuction(id: number): Auction {
+  return makeAuction(
+    id,
+    futurePrizes[(id + 1) % futurePrizes.length],
+    "upcoming",
+  );
+}
+
 function beginAuction(auction: Auction, now = Date.now()): void {
   const bidCount = 400 + Math.floor(Math.random() * 900);
   auction.status = "live";
@@ -149,16 +158,18 @@ function ensureUpcoming(session: DemoSession): void {
   const currentIndex = session.auctions.findIndex(
     (auction) => auction.id === session.currentAuctionId,
   );
-  while (session.auctions.length - currentIndex < 4) {
+  if (currentIndex < 0) return;
+
+  const upcomingCount = () =>
+    session.auctions
+      .slice(currentIndex + 1)
+      .filter((auction) => auction.status === "upcoming").length;
+
+  while (upcomingCount() < UPCOMING_AUCTION_COUNT) {
     const last = session.auctions[session.auctions.length - 1];
+    if (!last) return;
     const id = last.id + 1;
-    session.auctions.push(
-      makeAuction(
-        id,
-        futurePrizes[(id + 1) % futurePrizes.length],
-        "upcoming",
-      ),
-    );
+    session.auctions.push(makeUpcomingAuction(id));
   }
 }
 
@@ -181,9 +192,9 @@ function createSession(): DemoSession {
   const current = makeAuction(baseId, 1000, "upcoming");
   beginAuction(current, now);
   auctions.push(current);
-  auctions.push(makeAuction(baseId + 1, 5000, "upcoming"));
-  auctions.push(makeAuction(baseId + 2, 500, "upcoming"));
-  auctions.push(makeAuction(baseId + 3, 2000, "upcoming"));
+  for (let offset = 1; offset <= UPCOMING_AUCTION_COUNT; offset += 1) {
+    auctions.push(makeUpcomingAuction(baseId + offset));
+  }
 
   return {
     balance: 5,
