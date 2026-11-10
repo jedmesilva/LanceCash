@@ -86,11 +86,12 @@ button:disabled { cursor: default; }
 .lc-current { display: flex; align-items: center; gap: var(--lc-space-6); min-height: 92px; padding: 14px 18px 14px 14px; border: 2px solid var(--lc-text); border-radius: var(--lc-radius-feature); transition: background var(--lc-motion-standard), border-color var(--lc-motion-standard); }
 .lc-current.is-mine, .lc-current.is-ended { border-color: var(--lc-lime); background: var(--lc-lime); color: var(--lc-on-lime); }
 .lc-ring { position: relative; flex: none; width: 60px; height: 60px; }
-.lc-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.lc-ring > svg { width: 100%; height: 100%; transform: rotate(-90deg); }
 .lc-ring circle { fill: none; stroke: currentColor; stroke-width: 4; stroke-linecap: round; }
 .lc-ring .ring-bg { opacity: .18; }
 .lc-ring .ring-fill { stroke-dasharray: 100; transition: stroke-dashoffset .25s linear; }
 .lc-ring b { position: absolute; inset: 0; display: grid; place-items: center; font: 800 22px var(--lc-display); font-variant-numeric: tabular-nums; }
+.lc-ring-check { position: absolute; inset: 0; display: grid; place-items: center; }
 .lc-current.is-low .lc-ring { color: var(--lc-alert); animation: lc-pulse 1s infinite; }
 .lc-current-copy { flex: 1; min-width: 0; }
 .lc-kicker, .lc-subline { color: var(--lc-muted); font-size: 13px; font-weight: 600; }

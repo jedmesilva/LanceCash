@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ChevronLeft, ChevronRight, Plus, X, Zap } from 'lucide-react';
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Plus, X, Zap } from 'lucide-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -440,7 +440,13 @@ function LanceCash() {
                       <circle className="ring-bg" cx="20" cy="20" r="17" />
                       <circle className="ring-fill" cx="20" cy="20" r="17" pathLength="100" style={{ strokeDashoffset: ended ? 100 : isActive ? 100 - (auctionSeconds / 15) * 100 : 0 }} />
                     </svg>
-                    <b role="timer">{upcoming ? 15 : ended ? 0 : auctionSeconds}</b>
+                    {ended ? (
+                      <span className="lc-ring-check" role="img" aria-label="Leilão encerrado">
+                        <Check size={22} strokeWidth={3} />
+                      </span>
+                    ) : (
+                      <b role="timer">{upcoming ? 15 : auctionSeconds}</b>
+                    )}
                   </div>
                   <div className="lc-current-copy">
                     <div className="lc-kicker">{upcoming ? `Leilão #${auction.id}` : `${ended ? 'Leilão encerrado' : 'Lance atual'} #${NUMBER.format(auction.bidCount)}`}</div>
