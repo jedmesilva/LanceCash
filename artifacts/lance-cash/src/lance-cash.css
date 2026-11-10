@@ -67,6 +67,9 @@ button:disabled { cursor: default; }
 .lc-plus { display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--lc-radius-circle); background: var(--lc-lime); color: var(--lc-on-lime); }
 .lc-avatar { display: grid; flex: none; place-items: center; width: 44px; height: 44px; border-radius: var(--lc-radius-circle); background: var(--lc-text); color: var(--lc-bg); font-size: 16px; font-weight: 800; }
 .lc-avatar.big { width: 60px; height: 60px; font-size: 24px; }
+@media (min-width: 768px) {
+  .lc-header { max-width: var(--lc-header-max-desktop); }
+}
 .lc-pager { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 4px; width: 100%; max-width: 480px; margin: 0 auto; padding: 0 12px; }
 .lc-pager-button { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--lc-radius-circle); }
 .lc-pager-button:disabled { opacity: .25; }
