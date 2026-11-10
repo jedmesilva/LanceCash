@@ -500,7 +500,7 @@ function LanceCash() {
             <div><h2 id="purchase-title">Comprar lances</h2><p>{state.balance ? 'Cada lance que você dá usa 1 do seu saldo.' : 'Seu saldo acabou. Escolha um pacote para continuar.'}</p></div>
             <button className="lc-close" type="button" aria-label="Fechar" onClick={() => purchaseDialogRef.current?.close()} data-testid="button-close-purchase"><X size={16} strokeWidth={3} /></button>
           </div>
-          <div>
+          <div className="lc-package-list">
             {packages.map((pack: LancePackage) => {
               const total = pack.bids + pack.bonus;
               const unit = pack.price / total;
@@ -539,7 +539,7 @@ function LanceCash() {
           </div>
 
           {accountView === 'main' && (
-            <section>
+            <section className="lc-account-main">
               {accountNotice && <p className="lc-status" role="status">{accountNotice}</p>}
               <button className="lc-account-user" type="button" onClick={openProfile} aria-label="Editar dados da conta" data-testid="button-edit-profile">
                 <span className="lc-avatar big">{state.user.name.trim()[0]?.toUpperCase() || 'V'}</span>
@@ -580,7 +580,7 @@ function LanceCash() {
           )}
 
           {accountView === 'profile' && (
-            <form noValidate onSubmit={(event) => void saveProfile(event)}>
+            <form className="lc-profile-form" noValidate onSubmit={(event) => void saveProfile(event)}>
               <div className="lc-field">
                 <label htmlFor="profile-name">Nome</label>
                 <input id="profile-name" autoComplete="name" value={profileName} aria-invalid={Boolean(profileErrors.name)} aria-describedby="profile-name-error" onChange={(event) => { setProfileName(event.target.value); setProfileErrors((old) => ({ ...old, name: '' })); }} data-testid="input-profile-name" />

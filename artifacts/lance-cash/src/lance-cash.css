@@ -186,3 +186,155 @@ button:disabled { cursor: default; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+@media (min-width: 768px) {
+  .lc-dialog {
+    position: fixed;
+    inset: 50% auto auto 50%;
+    transform: translate(-50%, -50%);
+    width: min(560px, calc(100vw - 48px));
+    max-width: none;
+    max-height: min(88dvh, 900px);
+    margin: 0;
+    border-radius: 28px;
+    box-shadow: 0 24px 80px rgba(15, 18, 8, .24);
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .lc-dialog[aria-labelledby="purchase-title"] {
+    width: min(600px, calc(100vw - 48px));
+  }
+
+  .lc-dialog[aria-labelledby="account-title"] {
+    width: min(700px, calc(100vw - 48px));
+  }
+
+  .lc-dialog[open] {
+    animation: lc-center-in .22s cubic-bezier(.2, .8, .2, 1);
+  }
+
+  .lc-dialog-content {
+    padding: 28px 30px;
+  }
+
+  .lc-dialog-heading h2,
+  .lc-dialog-header-actions h2 {
+    font-size: 28px;
+  }
+
+  .lc-package-card {
+    min-height: 82px;
+    padding: 16px 18px;
+  }
+
+  .lc-payment-button {
+    min-height: 60px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .lc-dialog[aria-labelledby="purchase-title"] {
+    width: min(640px, calc(100vw - 64px));
+  }
+
+  .lc-dialog[aria-labelledby="account-title"] {
+    width: min(740px, calc(100vw - 64px));
+  }
+
+  .lc-dialog[aria-labelledby="purchase-title"] .lc-dialog-content {
+    padding: 34px 36px 30px;
+  }
+
+  .lc-package-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 12px;
+  }
+
+  .lc-package-list .lc-package {
+    margin-top: 16px;
+  }
+
+  .lc-package-list .lc-package:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    width: calc(50% - 6px);
+    justify-self: center;
+  }
+
+  .lc-package-card {
+    min-height: 90px;
+  }
+
+  .lc-dialog[aria-labelledby="account-title"] .lc-dialog-content {
+    padding: 34px 38px;
+  }
+
+  .lc-account-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(220px, .7fr);
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .lc-account-main > .lc-status,
+  .lc-account-main > .lc-account-user {
+    grid-column: 1 / -1;
+  }
+
+  .lc-account-main > .lc-status {
+    margin: 0;
+  }
+
+  .lc-account-main > .lc-account-user {
+    margin: 4px 0;
+  }
+
+  .lc-account-main > .lc-row-button {
+    grid-column: 1;
+    min-height: 84px;
+    margin: 0;
+  }
+
+  .lc-account-main > .lc-cta.secondary {
+    grid-column: 2;
+    min-height: 84px;
+    margin: 0;
+    font-size: 16px;
+  }
+
+  .lc-profile-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 20px;
+  }
+
+  .lc-profile-form > .lc-form-title,
+  .lc-profile-form > .lc-note,
+  .lc-profile-form > .lc-field:last-of-type {
+    grid-column: 1 / -1;
+  }
+
+  .lc-profile-form > .lc-show-password {
+    grid-column: 1;
+    align-self: center;
+  }
+
+  .lc-profile-form > .lc-save {
+    grid-column: 2;
+    width: auto;
+    min-width: 220px;
+    justify-self: end;
+    margin-top: 12px;
+  }
+
+  .lc-prize-row {
+    gap: 18px;
+    padding: 16px 8px;
+  }
+}
+
+@keyframes lc-center-in {
+  from { transform: translate(-50%, calc(-50% + 14px)); opacity: 0; }
+  to { transform: translate(-50%, -50%); opacity: 1; }
+}
