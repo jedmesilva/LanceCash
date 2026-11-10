@@ -209,6 +209,9 @@ components:
         packageId:
           type: string
           enum: [starter, value, popular, best]
+        requestId:
+          type: string
+          format: uuid
       required: [sessionId, packageId]
     ProfileUpdateInput:
       type: object

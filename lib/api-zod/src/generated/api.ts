@@ -169,7 +169,8 @@ export const purchaseLancePackageBodySessionIdMax = 80;
 
 export const PurchaseLancePackageBody = zod.object({
   "sessionId": zod.string().min(purchaseLancePackageBodySessionIdMin).max(purchaseLancePackageBodySessionIdMax),
-  "packageId": zod.enum(['starter', 'value', 'popular', 'best'])
+  "packageId": zod.enum(['starter', 'value', 'popular', 'best']),
+  "requestId": zod.string().uuid().optional()
 })
 
 

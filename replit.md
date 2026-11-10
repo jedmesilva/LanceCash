@@ -4,11 +4,11 @@ Protótipo responsivo de leilões de lances com saldo, compras Pix simuladas, co
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
+- `pnpm --filter @workspace/db run push` — push DB schema changes to development
 - Required env: `DATABASE_URL` — Postgres connection string
 
 ## Stack
@@ -31,10 +31,11 @@ Protótipo responsivo de leilões de lances com saldo, compras Pix simuladas, co
 
 ## Architecture decisions
 
-- The web client calls the shared API server through `/api`; auction state and actions are not implemented in the browser.
+- The web client calls the shared API server through `/api`; auctions, bids, accounts, balances, package purchases, and prize redemptions are stored in PostgreSQL.
 - This build preserves the uploaded prototype's simulated Pix and account behavior; it does not process payments or authenticate real users.
 - Keep the Lance Cash interface light; do not switch themes based on the device's dark-mode preference.
-- Prototype state is held in server memory to match the original's demo nature; it resets when the API server restarts.
+- The API seeds the demo user, bid packages, and sample auction history once when the database is empty. Auction timers and simulated activity are persisted, so restarting the API does not reset the state.
+- The browser's session ID only identifies the shared demo account; it is not authentication. Password fields are demo-only and are not stored.
 
 ## Product
 

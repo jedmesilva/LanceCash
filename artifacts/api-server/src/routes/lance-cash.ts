@@ -17,28 +17,30 @@ import {
   readState,
   redeemPrize,
   updateProfile,
-} from "../lib/lance-cash";
+} from "../lib/lance-cash-db";
 
 const router: IRouter = Router();
 
-router.get("/lance-cash/state", (req, res): void => {
+router.get("/lance-cash/state", async (req, res): Promise<void> => {
   const parsed = GetLanceCashStateQueryParams.safeParse(req.query);
   if (!parsed.success) {
     res.status(400).json({ error: "Sessão inválida." });
     return;
   }
 
-  res.json(GetLanceCashStateResponse.parse(readState(parsed.data.sessionId)));
+  res.json(
+    GetLanceCashStateResponse.parse(await readState(parsed.data.sessionId)),
+  );
 });
 
-router.get("/lance-cash/bids/history", (req, res): void => {
+router.get("/lance-cash/bids/history", async (req, res): Promise<void> => {
   const parsed = GetLanceCashAuctionBidsQueryParams.safeParse(req.query);
   if (!parsed.success) {
     res.status(400).json({ error: "Parâmetros do histórico inválidos." });
     return;
   }
 
-  const page = readOlderBids(
+  const page = await readOlderBids(
     parsed.data.sessionId,
     parsed.data.auctionId,
     parsed.data.before,
@@ -50,45 +52,52 @@ router.get("/lance-cash/bids/history", (req, res): void => {
   res.json(GetLanceCashAuctionBidsResponse.parse(page));
 });
 
-router.post("/lance-cash/bids", (req, res): void => {
+router.post("/lance-cash/bids", async (req, res): Promise<void> => {
   const parsed = PlaceLanceCashBidBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Dados do lance inválidos." });
     return;
   }
 
-  const result = placeBid(parsed.data.sessionId, parsed.data.auctionId);
-  if ("error" in result) {
+  const result = await placeBid(parsed.data.sessionId, parsed.data.auctionId);
+  if (!("state" in result)) {
     res.status(400).json({ error: result.error });
     return;
   }
   res.json(GetLanceCashStateResponse.parse(result.state));
 });
 
-router.post("/lance-cash/packages/purchase", (req, res): void => {
-  const parsed = PurchaseLancePackageBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Pacote inválido." });
-    return;
-  }
+router.post(
+  "/lance-cash/packages/purchase",
+  async (req, res): Promise<void> => {
+    const parsed = PurchaseLancePackageBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Pacote inválido." });
+      return;
+    }
 
-  const result = purchasePackage(parsed.data.sessionId, parsed.data.packageId);
-  if ("error" in result) {
-    res.status(400).json({ error: result.error });
-    return;
-  }
-  res.json(GetLanceCashStateResponse.parse(result.state));
-});
+    const result = await purchasePackage(
+      parsed.data.sessionId,
+      parsed.data.packageId,
+      parsed.data.requestId,
+    );
+    if (!("state" in result)) {
+      res.status(400).json({ error: result.error });
+      return;
+    }
+    res.json(GetLanceCashStateResponse.parse(result.state));
+  },
+);
 
-router.patch("/lance-cash/profile", (req, res): void => {
+router.patch("/lance-cash/profile", async (req, res): Promise<void> => {
   const parsed = UpdateLanceCashProfileBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Dados da conta inválidos." });
     return;
   }
 
-  const result = updateProfile(parsed.data);
-  if ("error" in result) {
+  const result = await updateProfile(parsed.data);
+  if (!("state" in result)) {
     res.status(400).json({ error: result.error });
     return;
   }
@@ -97,7 +106,7 @@ router.patch("/lance-cash/profile", (req, res): void => {
 
 router.post(
   "/lance-cash/prizes/:auctionId/redeem",
-  (req, res): void => {
+  async (req, res): Promise<void> => {
     const params = RedeemLanceCashPrizeParams.safeParse(req.params);
     const body = RedeemLanceCashPrizeBody.safeParse(req.body);
     if (!params.success || !body.success) {
@@ -105,8 +114,11 @@ router.post(
       return;
     }
 
-    const result = redeemPrize(body.data.sessionId, params.data.auctionId);
-    if ("error" in result) {
+    const result = await redeemPrize(
+      body.data.sessionId,
+      params.data.auctionId,
+    );
+    if (!("state" in result)) {
       const status = result.error === "Prêmio não encontrado." ? 404 : 400;
       res.status(status).json({ error: result.error });
       return;

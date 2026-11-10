@@ -14,4 +14,5 @@ export interface PurchasePackageInput {
      */
   sessionId: string;
   packageId: PurchasePackageInputPackageId;
+  requestId?: string;
 }

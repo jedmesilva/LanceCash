@@ -101,6 +101,7 @@ function LanceCash() {
   const scrollFrame = useRef<number | null>(null);
   const serverOffsetRef = useRef(0);
   const initializedAuctionRef = useRef<number | null>(null);
+  const packageRequestRef = useRef<{ packageId: string; requestId: string } | null>(null);
 
   const visibleAuction = auctions[visibleIndex] ?? currentAuction;
   const historyParams = {
@@ -252,8 +253,21 @@ function LanceCash() {
     setPurchaseBusy(true);
     try {
       await new Promise((resolve) => window.setTimeout(resolve, 900));
-      const next = await packageMutation.mutateAsync({ data: { sessionId, packageId: selectedPackage.id } });
+      if (!packageRequestRef.current || packageRequestRef.current.packageId !== selectedPackage.id) {
+        packageRequestRef.current = {
+          packageId: selectedPackage.id,
+          requestId: window.crypto.randomUUID(),
+        };
+      }
+      const next = await packageMutation.mutateAsync({
+        data: {
+          sessionId,
+          packageId: selectedPackage.id,
+          requestId: packageRequestRef.current.requestId,
+        },
+      });
       patchState(next);
+      packageRequestRef.current = null;
       purchaseDialogRef.current?.close();
       showToast(`+${selectedPackage.bids + selectedPackage.bonus} lances no seu saldo`);
     } catch (error) {
