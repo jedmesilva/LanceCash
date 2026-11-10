@@ -1,6 +1,6 @@
-# [Project name]
+# Lance Cash
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Protótipo responsivo de leilões de lances com saldo, compras Pix simuladas, conta de demonstração e resgate de prêmios.
 
 ## Run & Operate
 
@@ -22,15 +22,23 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/lance-cash/` — standalone React client
+- `artifacts/lance-cash/src/design-system/` — app-specific color, type, radius, spacing tokens and reusable visual components
+- `artifacts/lance-cash/src/lance-cash.css` — responsive presentation styles that consume the design tokens
+- `artifacts/api-server/src/lib/lance-cash.ts` — prototype auction and account state
+- `artifacts/api-server/src/routes/lance-cash.ts` — REST endpoints for client actions
+- `lib/api-spec/openapi.yaml` — API source of truth; generated TypeScript/Zod clients live in `lib/api-client-react/` and `lib/api-zod/`
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- The web client calls the shared API server through `/api`; auction state and actions are not implemented in the browser.
+- This build preserves the uploaded prototype's simulated Pix and account behavior; it does not process payments or authenticate real users.
+- Keep the Lance Cash interface light; do not switch themes based on the device's dark-mode preference.
+- Prototype state is held in server memory to match the original's demo nature; it resets when the API server restarts.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Users browse live, ended, and upcoming auctions; place simulated bids; add bid packs through a simulated Pix flow; edit demo profile details; and view or redeem demo prizes. The layout is responsive for desktop and mobile.
 
 ## User preferences
 

@@ -1,0 +1,51 @@
+:root {
+  /* Colors from the supplied Lance Cash prototype */
+  --lc-bg: #fff;
+  --lc-surface: #fff;
+  --lc-line: #DADDD0;
+  --lc-text: #0F1208;
+  --lc-muted: #5B6155;
+  --lc-lime: #D4FF4F;
+  --lc-on-lime: #0B0C10;
+  --lc-logo-fill: #D4FF4F;
+  --lc-logo-stroke: #0F1208;
+  --lc-green: #2F5A00;
+  --lc-alert: #C2381A;
+  --lc-bid-swatch-1: #E7F7A8;
+  --lc-bid-swatch-2: #FFD9CC;
+  --lc-bid-swatch-3: #CFE8FF;
+  --lc-bid-swatch-4: #E8D9FF;
+  --lc-bid-swatch-5: #FFF0B8;
+  --lc-shadow: rgba(15, 18, 8, .08);
+  --lc-scrim: rgba(15, 18, 8, .55);
+
+  /* Typography */
+  --lc-display: 'Bricolage Grotesque', Inter, system-ui, sans-serif;
+  --lc-body: Inter, system-ui, -apple-system, sans-serif;
+
+  /* Radius and spacing scales retain the source prototype's measurements */
+  --lc-radius-circle: 50%;
+  --lc-radius-pill: 99px;
+  --lc-radius-input: 16px;
+  --lc-radius-card: 20px;
+  --lc-radius-feature: 24px;
+  --lc-radius-sheet: 28px 28px 0 0;
+  --lc-space-1: 4px;
+  --lc-space-2: 6px;
+  --lc-space-3: 8px;
+  --lc-space-4: 10px;
+  --lc-space-5: 12px;
+  --lc-space-6: 14px;
+  --lc-space-7: 16px;
+  --lc-space-8: 18px;
+  --lc-space-9: 20px;
+  --lc-space-10: 22px;
+  --lc-space-11: 24px;
+  --lc-space-12: 28px;
+  --lc-space-13: 30px;
+  --lc-shadow-footer: 0 -8px 24px var(--lc-shadow);
+  --lc-motion-fast: .1s;
+  --lc-motion-standard: .25s;
+  color-scheme: light;
+}
+

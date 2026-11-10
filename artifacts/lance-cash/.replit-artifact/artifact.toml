@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Lance Cash"
+description = "Leilão de lances inspirado fielmente no protótipo enviado: acompanhe leilões ao vivo, use e compre lances, gerencie a conta e resgate prêmios em uma interface responsiva."
+version = "1.0.0"
+id = "artifacts/lance-cash"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20112
+
+[services.development]
+run = "pnpm --filter @workspace/lance-cash run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/lance-cash", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/lance-cash/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20112"
+BASE_PATH = "/"

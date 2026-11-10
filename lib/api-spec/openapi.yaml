@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: lance-cash
+    description: Lance Cash prototype operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,151 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /lance-cash/state:
+    get:
+      operationId: getLanceCashState
+      tags: [lance-cash]
+      summary: Get the current Lance Cash state
+      parameters:
+        - name: sessionId
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 8
+            maxLength: 80
+      responses:
+        "200":
+          description: Current account and auction state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LanceCashState"
+        "400":
+          description: Invalid session
+  /lance-cash/bids/history:
+    get:
+      operationId: getLanceCashAuctionBids
+      tags: [lance-cash]
+      summary: Get an older page of auction bids
+      parameters:
+        - name: auctionId
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+        - name: sessionId
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 8
+            maxLength: 80
+        - name: before
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: A page of bids, ordered newest first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuctionBidPage"
+        "400":
+          description: Invalid auction history request
+  /lance-cash/bids:
+    post:
+      operationId: placeLanceCashBid
+      tags: [lance-cash]
+      summary: Place a bid on the active auction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaceBidInput"
+      responses:
+        "200":
+          description: Updated auction state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LanceCashState"
+        "400":
+          description: Bid cannot be placed
+  /lance-cash/packages/purchase:
+    post:
+      operationId: purchaseLancePackage
+      tags: [lance-cash]
+      summary: Add a simulated lance package to the balance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PurchasePackageInput"
+      responses:
+        "200":
+          description: Updated account and auction state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LanceCashState"
+        "400":
+          description: Invalid package
+  /lance-cash/profile:
+    patch:
+      operationId: updateLanceCashProfile
+      tags: [lance-cash]
+      summary: Update the simulated account profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdateInput"
+      responses:
+        "200":
+          description: Updated account and auction state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LanceCashState"
+        "400":
+          description: Invalid profile data
+  /lance-cash/prizes/{auctionId}/redeem:
+    post:
+      operationId: redeemLanceCashPrize
+      tags: [lance-cash]
+      summary: Mark a simulated prize as redeemed
+      parameters:
+        - name: auctionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionInput"
+      responses:
+        "200":
+          description: Updated account and auction state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LanceCashState"
+        "400":
+          description: Prize cannot be redeemed
+        "404":
+          description: Prize not found
 components:
   schemas:
     HealthStatus:
@@ -33,4 +180,185 @@ components:
           type: string
       required:
         - status
+    SessionInput:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          minLength: 8
+          maxLength: 80
+      required: [sessionId]
+    PlaceBidInput:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          minLength: 8
+          maxLength: 80
+        auctionId:
+          type: integer
+          minimum: 1
+      required: [sessionId, auctionId]
+    PurchasePackageInput:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          minLength: 8
+          maxLength: 80
+        packageId:
+          type: string
+          enum: [starter, value, popular, best]
+      required: [sessionId, packageId]
+    ProfileUpdateInput:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          minLength: 8
+          maxLength: 80
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        email:
+          type: string
+          format: email
+          maxLength: 320
+        currentPassword:
+          type: string
+          maxLength: 200
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 200
+        confirmPassword:
+          type: string
+          maxLength: 200
+      required: [sessionId, name, email]
+    AuctionBid:
+      type: object
+      properties:
+        number:
+          type: integer
+          minimum: 1
+        leader:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [number, leader, createdAt]
+    AuctionBidPage:
+      type: object
+      properties:
+        bids:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuctionBid"
+        nextBefore:
+          type: ["integer", "null"]
+        hasMore:
+          type: boolean
+      required: [bids, nextBefore, hasMore]
+    LancePackage:
+      type: object
+      properties:
+        id:
+          type: string
+          enum: [starter, value, popular, best]
+        bids:
+          type: integer
+        bonus:
+          type: integer
+        price:
+          type: integer
+        label:
+          type: ["string", "null"]
+      required: [id, bids, bonus, price, label]
+    LanceCashAuction:
+      type: object
+      properties:
+        id:
+          type: integer
+        prize:
+          type: integer
+        status:
+          type: string
+          enum: [live, ended, upcoming]
+        bidCount:
+          type: integer
+        leader:
+          type: string
+        startedAt:
+          type: ["string", "null"]
+          format: date-time
+        deadlineAt:
+          type: ["string", "null"]
+          format: date-time
+        usedBids:
+          type: integer
+        bids:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuctionBid"
+        historyHasMore:
+          type: boolean
+      required:
+        - id
+        - prize
+        - status
+        - bidCount
+        - leader
+        - startedAt
+        - deadlineAt
+        - usedBids
+        - bids
+        - historyHasMore
+    LanceCashUser:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+      required: [name, email]
+    LanceCashPrize:
+      type: object
+      properties:
+        auctionId:
+          type: integer
+        prize:
+          type: integer
+        wonAt:
+          type: string
+          format: date-time
+        redeemed:
+          type: boolean
+      required: [auctionId, prize, wonAt, redeemed]
+    LanceCashState:
+      type: object
+      properties:
+        balance:
+          type: integer
+        currentAuctionId:
+          type: integer
+        serverTime:
+          type: string
+          format: date-time
+        user:
+          $ref: "#/components/schemas/LanceCashUser"
+        auctions:
+          type: array
+          items:
+            $ref: "#/components/schemas/LanceCashAuction"
+        packages:
+          type: array
+          items:
+            $ref: "#/components/schemas/LancePackage"
+        prizes:
+          type: array
+          items:
+            $ref: "#/components/schemas/LanceCashPrize"
+      required: [balance, currentAuctionId, serverTime, user, auctions, packages, prizes]
 
