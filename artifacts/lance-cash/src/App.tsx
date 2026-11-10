@@ -421,9 +421,11 @@ function LanceCash() {
             .reduce((all, bid) => all.set(bid.number, bid), new Map<number, AuctionBid>())
             .values();
           const orderedBids = [...auctionBids].sort((a, b) => b.number - a.number);
-          const auctionSeconds = isActive && auction.deadlineAt
-            ? Math.max(0, Math.ceil((getDeadlineMs(auction) - (clock + serverOffsetRef.current)) / 1000))
+          const remainingMs = isActive && auction.deadlineAt
+            ? Math.max(0, getDeadlineMs(auction) - (clock + serverOffsetRef.current))
             : 0;
+          const auctionSeconds = Math.ceil(remainingMs / 1000);
+          const ringProgress = Math.min(100, (remainingMs / 15_000) * 100);
           return (
             <section
               className="lc-slide"
@@ -452,7 +454,7 @@ function LanceCash() {
                   <div className="lc-ring">
                     <svg viewBox="0 0 40 40" aria-hidden="true">
                       <circle className="ring-bg" cx="20" cy="20" r="17" />
-                      <circle className="ring-fill" cx="20" cy="20" r="17" pathLength="100" style={{ strokeDashoffset: ended ? 100 : isActive ? 100 - (auctionSeconds / 15) * 100 : 0 }} />
+                      <circle className="ring-fill" cx="20" cy="20" r="17" pathLength="100" style={{ strokeDashoffset: ended ? 100 : isActive ? 100 - ringProgress : 0 }} />
                     </svg>
                     {ended ? (
                       <span className="lc-ring-check" role="img" aria-label="Leilão encerrado">
