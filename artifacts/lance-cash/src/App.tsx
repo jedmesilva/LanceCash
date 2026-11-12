@@ -942,7 +942,7 @@ function LanceCash() {
                     deadlineAt={auction.deadlineAt}
                     serverOffsetRef={serverOffsetRef}
                     isVerifying={isVerifyingAuction}
-                    isConnectionLost={serverConnectionLost}
+                    isSyncUnconfirmed={isStateUnverified}
                     connectionState={isCurrentLiveAuction ? countdownConnectionState : 'healthy'}
                     onDeadline={requestDeadlineVerification}
                   />

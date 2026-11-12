@@ -6,6 +6,8 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,
@@ -26,8 +28,14 @@ app.use(
   }),
 );
 app.use(cookieParser());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "32kb", inflate: false }));
+app.use(
+  express.urlencoded({
+    extended: true,
+    limit: "16kb",
+    inflate: false,
+  }),
+);
 
 app.use("/api", router);
 

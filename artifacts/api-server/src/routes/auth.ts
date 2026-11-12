@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { rateLimit } from "express-rate-limit";
 import {
   GetAuthMeResponse,
   PostAuthLoginBody,
@@ -24,6 +25,13 @@ import {
 import { hashPassword, verifyPassword } from "../lib/passwords";
 
 const router: IRouter = Router();
+const authRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Muitas tentativas. Aguarde antes de tentar novamente." },
+});
 
 function isUniqueViolation(error: unknown): boolean {
   return (
@@ -55,7 +63,7 @@ router.get("/auth/me", requireAuth, async (_req, res): Promise<void> => {
   res.json(GetAuthMeResponse.parse({ user }));
 });
 
-router.post("/auth/register", async (req, res): Promise<void> => {
+router.post("/auth/register", authRateLimit, async (req, res): Promise<void> => {
   const parsed = PostAuthRegisterBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Confira seu nome, e-mail e senha." });
@@ -110,7 +118,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/auth/login", async (req, res): Promise<void> => {
+router.post("/auth/login", authRateLimit, async (req, res): Promise<void> => {
   const parsed = PostAuthLoginBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Informe um e-mail e uma senha válidos." });
