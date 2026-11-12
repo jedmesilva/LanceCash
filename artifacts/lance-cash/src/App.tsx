@@ -1,6 +1,6 @@
 import { memo, type FormEvent, type MutableRefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, Eye, EyeOff, LogIn, Plus, X, Zap } from 'lucide-react';
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Eye, EyeOff, Loader2, LogIn, Plus, X, Zap } from 'lucide-react';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
@@ -136,7 +136,7 @@ const AuctionCountdown = memo(function AuctionCountdown({
   deadlineAt,
   serverOffsetRef,
   isVerifying,
-  isConnectionLost,
+  isSyncUnconfirmed,
   connectionState,
   onDeadline,
 }: {
@@ -145,7 +145,7 @@ const AuctionCountdown = memo(function AuctionCountdown({
   deadlineAt: string | null;
   serverOffsetRef: MutableRefObject<number>;
   isVerifying: boolean;
-  isConnectionLost: boolean;
+  isSyncUnconfirmed: boolean;
   connectionState: CountdownConnectionState;
   onDeadline: (auctionId: number, deadlineAt: string) => void;
 }) {
@@ -155,10 +155,10 @@ const AuctionCountdown = memo(function AuctionCountdown({
     if (status !== 'live' || !deadlineAt) return;
 
     setNow(Date.now());
-    if (isConnectionLost) return;
+    if (isSyncUnconfirmed) return;
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [deadlineAt, isConnectionLost, status]);
+  }, [deadlineAt, isSyncUnconfirmed, status]);
 
   const remainingMs = status === 'live' && deadlineAt
     ? Math.max(0, Date.parse(deadlineAt) - (now + serverOffsetRef.current))
@@ -297,6 +297,7 @@ function LanceCash() {
   const hasStateSyncError = stateQuery.isError && Boolean(stateQuery.data);
   const serverConnectionLost = !browserOnline || !realtimeConnected && hasStateSyncError;
   const stateSyncFailed = browserOnline && realtimeConnected && hasStateSyncError;
+  const isStateUnverified = serverConnectionLost || stateSyncFailed;
   const countdownConnectionState: CountdownConnectionState = serverConnectionLost ? 'disconnected'
     : stateSyncFailed ? 'sync-error'
       : realtimeConnected ? 'healthy' : 'delayed';
@@ -654,6 +655,7 @@ function LanceCash() {
   };
   const selectedPackage = state?.packages.find((item) => item.id === selectedPackageId) ?? state?.packages[0];
   const placeBid = async () => {
+    if (isStateUnverified) return;
     if (!isAuthenticated) {
       openAuth();
       return;
@@ -839,7 +841,7 @@ function LanceCash() {
     verificationTarget?.auctionId === currentAuction.id &&
     verificationTarget.deadlineAt === currentAuction.deadlineAt,
   );
-  const buttonDisabled = bidMutation.isPending || isAwaitingVerification || isAuthenticated && isVisibleCurrent && currentAuction?.status === 'live' && currentLeaderIsUser;
+  const buttonDisabled = bidMutation.isPending || isAwaitingVerification || isStateUnverified || isAuthenticated && isVisibleCurrent && currentAuction?.status === 'live' && currentLeaderIsUser;
   return (
     <main className="lc-app">
       <header className="lc-header">
