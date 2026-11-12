@@ -39,6 +39,8 @@ const queryClient = new QueryClient();
 const BRL0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 const BRL2 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const NUMBER = new Intl.NumberFormat('pt-BR');
+const INCOMING_BID_FEEDBACK_MS = 1000;
+const INCOMING_BID_FADE_MS = 150;
 
 function apiErrorStatus(error: unknown): number | undefined {
   if (typeof error !== 'object' || error === null || !('status' in error)) return undefined;
@@ -331,7 +333,7 @@ function LanceCash() {
       incomingBidTimerRef.current = window.setTimeout(() => {
         setIncomingBid(null);
         incomingBidTimerRef.current = null;
-      }, 2000);
+      }, INCOMING_BID_FEEDBACK_MS - INCOMING_BID_FADE_MS);
     }
 
     lastBidCountByAuctionRef.current = new Map(
