@@ -67,19 +67,28 @@ export interface PurchasePackageInput {
 
 export interface ProfileUpdateInput {
   /**
-     * @minLength 1
+     * @minLength 2
      * @maxLength 120
      */
   name: string;
-  /** @maxLength 200 */
-  currentPassword?: string;
+}
+
+export interface PasswordUpdateInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  currentPassword: string;
   /**
      * @minLength 8
      * @maxLength 200
      */
-  newPassword?: string;
-  /** @maxLength 200 */
-  confirmPassword?: string;
+  newPassword: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  confirmPassword: string;
 }
 
 export interface AuctionBid {

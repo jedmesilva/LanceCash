@@ -770,65 +770,74 @@ export async function purchasePackage(
   return { state: await readState(userId) };
 }
 
-export async function updateProfile(userId: string, input: {
-  name: string;
-  currentPassword?: string;
-  newPassword?: string;
-  confirmPassword?: string;
-}) {
-  if (input.name.trim().length < 2) {
+export async function updateProfile(
+  userId: string,
+  input: { name: string },
+) {
+  const name = input.name.trim();
+  if (name.length < 2) {
     return { error: "Informe um nome com pelo menos 2 caracteres." } as const;
   }
-
-  const changingPassword = Boolean(
-    input.currentPassword || input.newPassword || input.confirmPassword,
-  );
-  if (changingPassword && !input.currentPassword) {
-    return { error: "Informe a senha atual." } as const;
-  }
-  if (changingPassword && (input.newPassword?.length ?? 0) < 8) {
-    return {
-      error: "A nova senha precisa ter ao menos 8 caracteres.",
-    } as const;
-  }
-  if (changingPassword && input.newPassword === input.currentPassword) {
-    return { error: "A nova senha deve ser diferente da atual." } as const;
-  }
-  if (changingPassword && input.confirmPassword !== input.newPassword) {
-    return { error: "As senhas não coincidem." } as const;
-  }
-
-  if (changingPassword) {
-    const [account] = await db
-      .select({ passwordHash: usersTable.passwordHash })
-      .from(usersTable)
-      .where(eq(usersTable.id, userId))
-      .limit(1);
-    if (!account?.passwordHash) {
-      return {
-        error: "Esta conta não possui uma senha para alterar.",
-      } as const;
-    }
-    if (!(await verifyPassword(input.currentPassword ?? "", account.passwordHash))) {
-      return { error: "A senha atual está incorreta." } as const;
-    }
+  if (name.length > 120) {
+    return { error: "O nome deve ter no máximo 120 caracteres." } as const;
   }
 
   await db
     .update(usersTable)
+    .set({ name, updatedAt: new Date() })
+    .where(eq(usersTable.id, userId));
+
+  return { state: await readState(userId) };
+}
+
+export async function changePassword(
+  userId: string,
+  input: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  },
+) {
+  if (!input.currentPassword) {
+    return { error: "Informe a senha atual." } as const;
+  }
+  if (input.newPassword.length < 8) {
+    return {
+      error: "A nova senha precisa ter ao menos 8 caracteres.",
+    } as const;
+  }
+  if (input.newPassword.length > 200) {
+    return { error: "A nova senha deve ter no máximo 200 caracteres." } as const;
+  }
+  if (input.newPassword === input.currentPassword) {
+    return { error: "A nova senha deve ser diferente da atual." } as const;
+  }
+  if (input.confirmPassword !== input.newPassword) {
+    return { error: "As senhas não coincidem." } as const;
+  }
+
+  const [account] = await db
+    .select({ passwordHash: usersTable.passwordHash })
+    .from(usersTable)
+    .where(eq(usersTable.id, userId))
+    .limit(1);
+  if (!account?.passwordHash) {
+    return {
+      error: "Esta conta não possui uma senha para alterar.",
+    } as const;
+  }
+  if (!(await verifyPassword(input.currentPassword, account.passwordHash))) {
+    return { error: "A senha atual está incorreta." } as const;
+  }
+  await db
+    .update(usersTable)
     .set({
-      name: input.name.trim(),
-      ...(changingPassword
-        ? { passwordHash: await hashPassword(input.newPassword ?? "") }
-        : {}),
+      passwordHash: await hashPassword(input.newPassword),
       updatedAt: new Date(),
     })
     .where(eq(usersTable.id, userId));
 
-  return {
-    state: await readState(userId),
-    passwordUpdated: changingPassword,
-  };
+  return { state: await readState(userId) };
 }
 
 export async function redeemPrize(userId: string, auctionId: number) {

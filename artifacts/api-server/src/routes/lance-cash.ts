@@ -6,6 +6,7 @@ import {
   PlaceLanceCashBidBody,
   PurchaseLancePackageBody,
   RedeemLanceCashPrizeParams,
+  ChangeLanceCashPasswordBody,
   UpdateLanceCashProfileBody,
 } from "@workspace/api-zod";
 import { requireAuth, resolveAuthSession } from "../lib/auth-session";
@@ -16,6 +17,7 @@ import {
   readOlderBids,
   readState,
   redeemPrize,
+  changePassword,
   updateProfile,
 } from "../lib/lance-cash-db";
 
@@ -111,6 +113,28 @@ router.patch(
     }
 
     const result = await updateProfile(
+      res.locals.authUserId as string,
+      parsed.data,
+    );
+    if (!("state" in result)) {
+      res.status(400).json({ error: result.error });
+      return;
+    }
+    res.json(GetLanceCashStateResponse.parse(result.state));
+  },
+);
+
+router.patch(
+  "/lance-cash/password",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const parsed = ChangeLanceCashPasswordBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Dados de senha inválidos." });
+      return;
+    }
+
+    const result = await changePassword(
       res.locals.authUserId as string,
       parsed.data,
     );

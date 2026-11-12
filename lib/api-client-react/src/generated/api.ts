@@ -32,6 +32,7 @@ import type {
   GetLanceCashAuctionBidsParams,
   HealthStatus,
   LanceCashState,
+  PasswordUpdateInput,
   PlaceBidInput,
   ProfileUpdateInput,
   PurchasePackageInput
@@ -988,6 +989,94 @@ export const useUpdateLanceCashProfile = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUpdateLanceCashProfileMutationOptions(options), queryClient);
+    }
+
+export const getChangeLanceCashPasswordUrl = () => {
+
+
+
+
+  return `/api/lance-cash/password`
+}
+
+/**
+ * @summary Change the authenticated account password
+ */
+export const changeLanceCashPassword = async (passwordUpdateInput: PasswordUpdateInput, options?: Parameters<typeof customFetch>[1]): Promise<LanceCashState> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<LanceCashState>(getChangeLanceCashPasswordUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(passwordUpdateInput)
+  }
+);}
+
+
+
+
+
+export const getChangeLanceCashPasswordMutationKey = () => ['changeLanceCashPassword'] as const;
+
+export const getChangeLanceCashPasswordMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changeLanceCashPassword>>, TError,ChangeLanceCashPasswordMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof changeLanceCashPassword>>, TError,ChangeLanceCashPasswordMutationVariables, TContext> => {
+
+const mutationKey = getChangeLanceCashPasswordMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof changeLanceCashPassword>>, ChangeLanceCashPasswordMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  changeLanceCashPassword(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ChangeLanceCashPasswordMutationResult = NonNullable<Awaited<ReturnType<typeof changeLanceCashPassword>>>
+    export type ChangeLanceCashPasswordMutationBody = BodyType<PasswordUpdateInput>
+    export type ChangeLanceCashPasswordMutationError = ErrorType<void>
+    export type ChangeLanceCashPasswordMutationVariables = {data: BodyType<PasswordUpdateInput>}
+
+    /**
+ * @summary Change the authenticated account password
+ */
+export const useChangeLanceCashPassword = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changeLanceCashPassword>>, TError,ChangeLanceCashPasswordMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof changeLanceCashPassword>>,
+        TError,
+        ChangeLanceCashPasswordMutationVariables,
+        TContext
+      > => {
+      return useMutation(getChangeLanceCashPasswordMutationOptions(options), queryClient);
     }
 
 export const getRedeemLanceCashPrizeUrl = (auctionId: number,) => {

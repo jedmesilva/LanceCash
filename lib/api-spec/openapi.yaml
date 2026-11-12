@@ -209,6 +209,30 @@ paths:
           description: Invalid profile data
         "401":
           description: Authentication required
+  /lance-cash/password:
+    patch:
+      operationId: changeLanceCashPassword
+      tags: [lance-cash]
+      summary: Change the authenticated account password
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordUpdateInput"
+      responses:
+        "200":
+          description: Updated account and auction state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LanceCashState"
+        "400":
+          description: Invalid password data
+        "401":
+          description: Authentication required
   /lance-cash/prizes/{auctionId}/redeem:
     post:
       operationId: redeemLanceCashPrize
@@ -321,10 +345,16 @@ components:
       properties:
         name:
           type: string
-          minLength: 1
+          minLength: 2
           maxLength: 120
+      required: [name]
+    PasswordUpdateInput:
+      type: object
+      additionalProperties: false
+      properties:
         currentPassword:
           type: string
+          minLength: 1
           maxLength: 200
         newPassword:
           type: string
@@ -332,8 +362,9 @@ components:
           maxLength: 200
         confirmPassword:
           type: string
+          minLength: 1
           maxLength: 200
-      required: [name]
+      required: [currentPassword, newPassword, confirmPassword]
     AuctionBid:
       type: object
       properties:

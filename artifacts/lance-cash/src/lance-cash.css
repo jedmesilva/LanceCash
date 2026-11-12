@@ -238,7 +238,6 @@ button:disabled { cursor: default; }
 .lc-field input:read-only { background: color-mix(in srgb, var(--lc-line) 20%, var(--lc-bg)); color: var(--lc-muted); }
 .lc-field input[aria-invalid="true"] { border-color: var(--lc-alert); }
 .lc-field-error { margin: 6px 0 0; color: var(--lc-alert); font-size: 13px; font-weight: 600; }
-.lc-form-title { margin: 28px 0 0; font: 800 18px var(--lc-display); letter-spacing: -.02em; }
 .lc-show-password { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 14px; }
 .lc-show-password input { width: 20px; height: 20px; accent-color: var(--lc-text); }
 .lc-save { margin-top: 22px; }
@@ -415,13 +414,16 @@ button:disabled { cursor: default; }
     column-gap: 20px;
   }
 
-  .lc-profile-form > .lc-form-title,
-  .lc-profile-form > .lc-note,
-  .lc-profile-form > .lc-field:last-of-type {
+  .lc-profile-form > .lc-password-note,
+  .lc-profile-form > .lc-profile-password {
     grid-column: 1 / -1;
   }
 
-  .lc-profile-form > .lc-show-password {
+  .lc-profile-form > .lc-profile-password {
+    margin: 0;
+  }
+
+  .lc-password-form > .lc-show-password {
     grid-column: 1;
     align-self: center;
   }

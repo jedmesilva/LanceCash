@@ -4,6 +4,7 @@ Protótipo responsivo de leilões de lances com saldo, compras Pix simuladas, co
 
 ## Run & Operate
 
+- Install the workspace dependencies with `pnpm install --frozen-lockfile`.
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080)
 - `pnpm --filter @workspace/lance-cash run dev` — run the React client (port 20112)
 - For local development, run both services in separate terminals. Replit starts them as managed workflows.

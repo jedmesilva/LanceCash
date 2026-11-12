@@ -1,6 +1,6 @@
 import { memo, type FormEvent, type MutableRefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, Eye, EyeOff, Loader2, LogIn, Plus, X, Zap } from 'lucide-react';
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Eye, EyeOff, Loader2, LockKeyhole, LogIn, Plus, X, Zap } from 'lucide-react';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
@@ -20,6 +20,7 @@ import {
   usePlaceLanceCashBid,
   usePurchaseLancePackage,
   useRedeemLanceCashPrize,
+  useChangeLanceCashPassword,
   useUpdateLanceCashProfile,
 } from '@workspace/api-client-react';
 import type {
@@ -28,6 +29,7 @@ import type {
   LanceCashPrize,
   LanceCashState,
   LancePackage,
+  PasswordUpdateInput,
   ProfileUpdateInput,
 } from '@workspace/api-client-react';
 import { useAuctionRealtime, type AuctionRealtimeUpdate } from '@/hooks/use-auction-realtime';
@@ -355,7 +357,7 @@ function LanceCash() {
   const [selectedPackageId, setSelectedPackageId] = useState('popular');
   const [toastText, setToastText] = useState('');
   const [incomingBid, setIncomingBid] = useState<{ auctionId: number; bidNumber: number } | null>(null);
-  const [accountView, setAccountView] = useState<'main' | 'prizes' | 'profile'>('main');
+  const [accountView, setAccountView] = useState<'main' | 'prizes' | 'profile' | 'password'>('main');
   const [accountNotice, setAccountNotice] = useState('');
   const [authMode, setAuthMode] = useState<'in' | 'up'>('in');
   const [authName, setAuthName] = useState('');
@@ -417,6 +419,7 @@ function LanceCash() {
   const bidMutation = usePlaceLanceCashBid();
   const packageMutation = usePurchaseLancePackage();
   const profileMutation = useUpdateLanceCashProfile();
+  const passwordMutation = useChangeLanceCashPassword();
   const redeemMutation = useRedeemLanceCashPrize();
   const loginMutation = usePostAuthLogin();
   const registerMutation = usePostAuthRegister();
@@ -802,16 +805,21 @@ function LanceCash() {
     setAccountView('profile');
   };
 
+  const openPasswordChange = () => {
+    setPasswordCurrent('');
+    setPasswordNew('');
+    setPasswordConfirm('');
+    setShowPasswords(false);
+    setProfileErrors({});
+    setAccountView('password');
+  };
+
   const saveProfile = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const name = profileName.trim();
-    const changingPassword = Boolean(passwordCurrent || passwordNew || passwordConfirm);
     const errors: Record<string, string> = {};
-    if (!name) errors.name = 'Informe seu nome.';
-    if (changingPassword && !passwordCurrent) errors.current = 'Informe a senha atual.';
-    if (changingPassword && passwordNew.length < 8) errors.new = 'A nova senha precisa ter ao menos 8 caracteres.';
-    if (changingPassword && passwordNew === passwordCurrent && passwordNew.length >= 8) errors.new = 'A nova senha deve ser diferente da atual.';
-    if (changingPassword && passwordConfirm !== passwordNew) errors.confirm = 'As senhas não coincidem.';
+    if (name.length < 2) errors.name = 'Informe um nome com pelo menos 2 caracteres.';
+    if (name.length > 120) errors.name = 'O nome deve ter no máximo 120 caracteres.';
     setProfileErrors(errors);
     const firstError = Object.keys(errors)[0];
     if (firstError) {
@@ -820,23 +828,52 @@ function LanceCash() {
     }
     const update: ProfileUpdateInput = {
       name,
-      ...(changingPassword ? {
-        currentPassword: passwordCurrent,
-        newPassword: passwordNew,
-        confirmPassword: passwordConfirm,
-      } : {}),
     };
     setSavingProfile(true);
     try {
       const next = await profileMutation.mutateAsync({ data: update });
       patchState(next);
       await queryClient.invalidateQueries({ queryKey: getGetAuthMeQueryKey() });
-      setAccountNotice(changingPassword ? 'Dados e senha atualizados.' : 'Dados atualizados.');
+      setAccountNotice('Dados atualizados.');
       setAccountView('main');
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Não foi possível salvar seus dados.');
+      showToast(apiErrorMessage(error, 'Não foi possível salvar seus dados.'));
     } finally {
       setSavingProfile(false);
+    }
+  };
+
+  const changePassword = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const errors: Record<string, string> = {};
+    if (!passwordCurrent) errors.current = 'Informe a senha atual.';
+    if (passwordNew.length < 8) errors.new = 'A nova senha precisa ter ao menos 8 caracteres.';
+    else if (passwordNew.length > 200) errors.new = 'A nova senha deve ter no máximo 200 caracteres.';
+    else if (passwordNew === passwordCurrent) errors.new = 'A nova senha deve ser diferente da atual.';
+    if (passwordConfirm !== passwordNew) errors.confirm = 'As senhas não coincidem.';
+    setProfileErrors(errors);
+    const firstError = Object.keys(errors)[0];
+    if (firstError) {
+      document.getElementById(`password-${firstError}`)?.focus();
+      return;
+    }
+
+    const update: PasswordUpdateInput = {
+      currentPassword: passwordCurrent,
+      newPassword: passwordNew,
+      confirmPassword: passwordConfirm,
+    };
+    try {
+      const next = await passwordMutation.mutateAsync({ data: update });
+      patchState(next);
+      setPasswordCurrent('');
+      setPasswordNew('');
+      setPasswordConfirm('');
+      setShowPasswords(false);
+      setAccountNotice('Senha atualizada.');
+      setAccountView('main');
+    } catch (error) {
+      showToast(apiErrorMessage(error, 'Não foi possível alterar sua senha.'));
     }
   };
 
@@ -1144,8 +1181,20 @@ function LanceCash() {
         <div className="lc-dialog-content">
           <div className="lc-dialog-header-actions">
             <div className="lc-back-heading">
-              {accountView !== 'main' && <button className="lc-close" type="button" aria-label="Voltar" onClick={() => { setAccountNotice(''); setAccountView('main'); }} data-testid="button-account-back"><ArrowLeft size={16} strokeWidth={3} /></button>}
-              <h2 id="account-title">{accountView === 'main' ? 'Minha conta' : accountView === 'prizes' ? 'Meus prêmios' : 'Meus dados'}</h2>
+              {accountView !== 'main' && <button className="lc-close" type="button" aria-label="Voltar" onClick={() => {
+                setAccountNotice('');
+                if (accountView === 'password') {
+                  setPasswordCurrent('');
+                  setPasswordNew('');
+                  setPasswordConfirm('');
+                  setShowPasswords(false);
+                  setProfileErrors({});
+                  setAccountView('profile');
+                } else {
+                  setAccountView('main');
+                }
+              }} data-testid="button-account-back"><ArrowLeft size={16} strokeWidth={3} /></button>}
+              <h2 id="account-title">{accountView === 'main' ? 'Minha conta' : accountView === 'prizes' ? 'Meus prêmios' : accountView === 'password' ? 'Alterar senha' : 'Meus dados'}</h2>
             </div>
             <button className="lc-close" type="button" aria-label="Fechar" onClick={() => accountDialogRef.current?.close()} data-testid="button-close-account"><X size={16} strokeWidth={3} /></button>
           </div>
@@ -1195,7 +1244,7 @@ function LanceCash() {
             <form className="lc-profile-form" noValidate onSubmit={(event) => void saveProfile(event)}>
               <div className="lc-field">
                 <label htmlFor="profile-name">Nome</label>
-                <input id="profile-name" autoComplete="name" value={profileName} aria-invalid={Boolean(profileErrors.name)} aria-describedby="profile-name-error" onChange={(event) => { setProfileName(event.target.value); setProfileErrors((old) => ({ ...old, name: '' })); }} data-testid="input-profile-name" />
+                <input id="profile-name" autoComplete="name" minLength={2} maxLength={120} value={profileName} aria-invalid={Boolean(profileErrors.name)} aria-describedby="profile-name-error" onChange={(event) => { setProfileName(event.target.value); setProfileErrors((old) => ({ ...old, name: '' })); }} data-testid="input-profile-name" />
                 {profileErrors.name && <p id="profile-name-error" className="lc-field-error">{profileErrors.name}</p>}
               </div>
               <div className="lc-field">
@@ -1203,21 +1252,31 @@ function LanceCash() {
                 <input id="profile-email" type="email" value={state?.user?.email ?? ''} readOnly aria-readonly="true" aria-describedby="profile-email-hint" data-testid="input-profile-email" />
                 <p id="profile-email-hint" className="lc-note" style={{ textAlign: 'left', marginTop: 4 }}>O e-mail não pode ser alterado.</p>
               </div>
-              <h3 className="lc-form-title">Alterar senha</h3>
-              <p className="lc-note" style={{ textAlign: 'left', marginTop: 4 }}>Deixe em branco para manter a senha atual.</p>
+              <button className="lc-row-button lc-profile-password" type="button" onClick={openPasswordChange} data-testid="button-open-password-change">
+                <span className="lc-icon-disc"><LockKeyhole size={22} /></span>
+                <span className="lc-user-copy"><b>Alterar senha</b><small>Troque a senha da sua conta</small></span>
+                <ChevronRight size={18} strokeWidth={3} />
+              </button>
+              <button className="lc-cta lc-save" type="submit" disabled={savingProfile || profileMutation.isPending} data-testid="button-save-profile">{savingProfile ? 'Salvando…' : 'Salvar alterações'}</button>
+            </form>
+          )}
+
+          {accountView === 'password' && (
+            <form className="lc-profile-form lc-password-form" noValidate onSubmit={(event) => void changePassword(event)}>
+              <p className="lc-note lc-password-note">Informe sua senha atual e escolha uma nova senha.</p>
               {[
                 { id: 'current', label: 'Senha atual', value: passwordCurrent, change: setPasswordCurrent, auto: 'current-password', error: profileErrors.current },
                 { id: 'new', label: 'Nova senha', value: passwordNew, change: setPasswordNew, auto: 'new-password', error: profileErrors.new },
                 { id: 'confirm', label: 'Confirmar nova senha', value: passwordConfirm, change: setPasswordConfirm, auto: 'new-password', error: profileErrors.confirm },
               ].map((field) => (
                 <div className="lc-field" key={field.id}>
-                  <label htmlFor={`profile-${field.id}`}>{field.label}</label>
-                  <input id={`profile-${field.id}`} type={showPasswords ? 'text' : 'password'} autoComplete={field.auto} value={field.value} aria-invalid={Boolean(field.error)} aria-describedby={`profile-${field.id}-error`} onChange={(event) => { field.change(event.target.value); setProfileErrors((old) => ({ ...old, [field.id]: '' })); }} data-testid={`input-profile-${field.id}-password`} />
-                  {field.error && <p id={`profile-${field.id}-error`} className="lc-field-error">{field.error}</p>}
+                  <label htmlFor={`password-${field.id}`}>{field.label}</label>
+                  <input id={`password-${field.id}`} type={showPasswords ? 'text' : 'password'} autoComplete={field.auto} maxLength={200} value={field.value} aria-invalid={Boolean(field.error)} aria-describedby={`password-${field.id}-error`} onChange={(event) => { field.change(event.target.value); setProfileErrors((old) => ({ ...old, [field.id]: '' })); }} data-testid={`input-password-${field.id}`} />
+                  {field.error && <p id={`password-${field.id}-error`} className="lc-field-error">{field.error}</p>}
                 </div>
               ))}
               <label className="lc-show-password"><input type="checkbox" checked={showPasswords} onChange={(event) => setShowPasswords(event.target.checked)} data-testid="input-show-passwords" />Mostrar senhas</label>
-              <button className="lc-cta lc-save" type="submit" disabled={savingProfile || profileMutation.isPending} data-testid="button-save-profile">{savingProfile ? 'Salvando…' : 'Salvar alterações'}</button>
+              <button className="lc-cta lc-save" type="submit" disabled={passwordMutation.isPending} data-testid="button-save-password">{passwordMutation.isPending ? 'Atualizando…' : 'Salvar nova senha'}</button>
             </form>
           )}
         </div>
