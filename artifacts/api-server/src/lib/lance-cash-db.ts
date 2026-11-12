@@ -30,6 +30,7 @@ const auctionDurationMs = 15_000;
 const historyPageSize = 12;
 const demoEmail = "vitor@exemplo.com";
 const seedLockId = 58_416_039;
+const auctionLifecycleLockId = 58_416_040;
 const bidderNames = [
   "Marina S.",
   "Lucas P.",
@@ -299,6 +300,18 @@ async function ensureUpcomingAuction(tx: Transaction): Promise<void> {
   });
 }
 
+async function lockAuctionLifecycle(tx: Transaction): Promise<void> {
+  await tx.execute(sql`SELECT pg_advisory_xact_lock(${auctionLifecycleLockId})`);
+}
+
+export async function advanceAuctions(): Promise<void> {
+  await db.transaction(async (tx) => {
+    await lockAuctionLifecycle(tx);
+    await advanceCurrentAuction(tx);
+    await ensureUpcomingAuction(tx);
+  });
+}
+
 function toIso(value: Date | null): string | null {
   return value?.toISOString() ?? null;
 }
@@ -314,8 +327,6 @@ function isUniqueViolation(error: unknown): boolean {
 
 export async function readState(userId: string) {
   return db.transaction(async (tx) => {
-    await advanceCurrentAuction(tx);
-    await ensureUpcomingAuction(tx);
     const currentAuction = await getCurrentAuction(tx);
     if (!currentAuction) {
       throw new Error("Nenhum leilão está cadastrado.");
@@ -418,8 +429,15 @@ export async function readState(userId: string) {
 }
 
 export async function readPublicState() {
-  const demoUserId = await ensureDemoData();
-  const state = await readState(demoUserId);
+  const [demoUser] = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(eq(usersTable.isDemo, true))
+    .limit(1);
+  if (!demoUser) {
+    throw new Error("A conta de demonstração não foi inicializada.");
+  }
+  const state = await readState(demoUser.id);
   return {
     ...state,
     balance: 0,
@@ -443,7 +461,6 @@ export async function readOlderBids(
   before: number,
 ) {
   return db.transaction(async (tx) => {
-    await advanceCurrentAuction(tx);
     const [auction] = await tx
       .select({ id: auctionsTable.id, bidCount: auctionsTable.bidCount })
       .from(auctionsTable)
@@ -479,6 +496,7 @@ export async function readOlderBids(
 
 export async function placeBid(userId: string, auctionId: number) {
   const result = await db.transaction(async (tx) => {
+    await lockAuctionLifecycle(tx);
     await advanceCurrentAuction(tx);
     let current = await getCurrentAuction(tx);
     if (current?.status === "ended") {
@@ -751,6 +769,7 @@ export async function updateProfile(userId: string, input: {
 
 export async function redeemPrize(userId: string, auctionId: number) {
   const result = await db.transaction(async (tx) => {
+    await lockAuctionLifecycle(tx);
     await advanceCurrentAuction(tx);
     const [prize] = await tx
       .select()

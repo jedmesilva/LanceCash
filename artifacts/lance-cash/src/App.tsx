@@ -157,7 +157,6 @@ function LanceCash() {
   const [showPasswords, setShowPasswords] = useState(false);
   const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
   const [redeemingId, setRedeemingId] = useState<number | null>(null);
-  const [purchaseBusy, setPurchaseBusy] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [toastTimer, setToastTimer] = useState<number | null>(null);
   const [offsetScroll, setOffsetScroll] = useState<number | null>(null);
@@ -411,10 +410,8 @@ function LanceCash() {
   };
 
   const purchasePackage = async () => {
-    if (!selectedPackage) return;
-    setPurchaseBusy(true);
+    if (!selectedPackage || packageMutation.isPending) return;
     try {
-      await new Promise((resolve) => window.setTimeout(resolve, 900));
       if (!packageRequestRef.current || packageRequestRef.current.packageId !== selectedPackage.id) {
         packageRequestRef.current = {
           packageId: selectedPackage.id,
@@ -433,8 +430,6 @@ function LanceCash() {
       showToast(`+${selectedPackage.bids + selectedPackage.bonus} lances no seu saldo`);
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Não foi possível confirmar o Pix simulado.');
-    } finally {
-      setPurchaseBusy(false);
     }
   };
 
@@ -713,8 +708,8 @@ function LanceCash() {
               );
             })}
           </div>
-          <button className="lc-cta lc-payment-button" type="button" disabled={!selectedPackage || purchaseBusy || packageMutation.isPending} onClick={() => void purchasePackage()} data-testid="button-simulated-pix">
-            {purchaseBusy ? 'Confirmando Pix…' : selectedPackage ? `Pagar ${BRL0.format(selectedPackage.price)} com Pix` : 'Escolha um pacote'}
+          <button className="lc-cta lc-payment-button" type="button" disabled={!selectedPackage || packageMutation.isPending} onClick={() => void purchasePackage()} data-testid="button-simulated-pix">
+            {packageMutation.isPending ? 'Confirmando Pix…' : selectedPackage ? `Pagar ${BRL0.format(selectedPackage.price)} com Pix` : 'Escolha um pacote'}
           </button>
           <p className="lc-note">Pix simulado neste protótipo. Lances usados não são reembolsados.</p>
         </div>
