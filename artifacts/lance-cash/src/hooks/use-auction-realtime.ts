@@ -55,7 +55,7 @@ export function useAuctionRealtime(onUpdate: (event: AuctionRealtimeUpdate) => v
     let reconnectAttempt = 0;
 
     const connect = () => {
-      if (!active) return;
+      if (!active || !navigator.onLine) return;
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const nextSocket = new WebSocket(`${protocol}//${window.location.host}/ws`);
       socket = nextSocket;
@@ -77,8 +77,9 @@ export function useAuctionRealtime(onUpdate: (event: AuctionRealtimeUpdate) => v
       });
 
       nextSocket.addEventListener("close", () => {
+        if (socket !== nextSocket) return;
         setConnected(false);
-        if (!active) return;
+        if (!active || !navigator.onLine) return;
         const delay = Math.min(500 * 2 ** reconnectAttempt, 15_000);
         reconnectAttempt = Math.min(reconnectAttempt + 1, 6);
         reconnectTimer = window.setTimeout(connect, delay);
@@ -89,9 +90,26 @@ export function useAuctionRealtime(onUpdate: (event: AuctionRealtimeUpdate) => v
       });
     };
 
+    const handleOffline = () => {
+      setConnected(false);
+      const currentSocket = socket;
+      socket = null;
+      currentSocket?.close();
+    };
+    const handleOnline = () => {
+      if (!active || (socket && socket.readyState !== WebSocket.CLOSED)) return;
+      if (reconnectTimer !== null) window.clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+      connect();
+    };
+
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("online", handleOnline);
     connect();
     return () => {
       active = false;
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("online", handleOnline);
       if (reconnectTimer !== null) window.clearTimeout(reconnectTimer);
       socket?.close(1000, "Page closed.");
     };

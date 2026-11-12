@@ -129,31 +129,47 @@ function LoadingView() {
 }
 
 const AuctionCountdown = memo(function AuctionCountdown({
+  auctionId,
   status,
   deadlineAt,
   serverOffsetRef,
+  isVerifying,
+  isConnectionLost,
+  onDeadline,
 }: {
+  auctionId: number;
   status: 'live' | 'ended' | 'upcoming';
   deadlineAt: string | null;
   serverOffsetRef: MutableRefObject<number>;
+  isVerifying: boolean;
+  isConnectionLost: boolean;
+  onDeadline: (auctionId: number, deadlineAt: string) => void;
 }) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     if (status !== 'live' || !deadlineAt) return;
 
+    setNow(Date.now());
+    if (isConnectionLost) return;
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [deadlineAt, status]);
+  }, [deadlineAt, isConnectionLost, status]);
 
   const remainingMs = status === 'live' && deadlineAt
     ? Math.max(0, Date.parse(deadlineAt) - (now + serverOffsetRef.current))
     : 0;
   const seconds = status === 'upcoming' ? 15 : Math.ceil(remainingMs / 1000);
   const ringProgress = status === 'live' ? Math.min(100, (remainingMs / 15_000) * 100) : 0;
+  const deadlineReached = status === 'live' && Boolean(deadlineAt) && remainingMs === 0;
+  const showVerification = isVerifying || deadlineReached;
+
+  useEffect(() => {
+    if (deadlineReached && deadlineAt) onDeadline(auctionId, deadlineAt);
+  }, [auctionId, deadlineAt, deadlineReached, onDeadline]);
 
   return (
-    <div className={`lc-ring${status === 'live' && seconds < 5 ? ' is-low' : ''}`}>
+    <div className={`lc-ring${status === 'live' && seconds < 5 && !showVerification ? ' is-low' : ''}${showVerification ? ' is-verifying' : ''}`}>
       <svg viewBox="0 0 40 40" aria-hidden="true">
         <circle className="ring-bg" cx="20" cy="20" r="17" />
         <circle className="ring-fill" cx="20" cy="20" r="17" pathLength="100" style={{ strokeDashoffset: 100 - ringProgress }} />
@@ -163,7 +179,9 @@ const AuctionCountdown = memo(function AuctionCountdown({
           <Check size={22} strokeWidth={3} />
         </span>
       ) : (
-        <b role="timer">{seconds}</b>
+        <b role="timer" aria-label={showVerification ? 'Verificando o resultado com o servidor' : `${seconds} segundos restantes`}>
+          {showVerification ? '…' : seconds}
+        </b>
       )}
     </div>
   );
@@ -239,14 +257,56 @@ function LanceCash() {
     }
   }, [isAuthenticated, queryClient]);
   const realtimeConnected = useAuctionRealtime(handleAuctionUpdate);
+  const [browserOnline, setBrowserOnline] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const updateOnlineStatus = () => setBrowserOnline(navigator.onLine);
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    return () => {
+      window.removeEventListener('online', updateOnlineStatus);
+      window.removeEventListener('offline', updateOnlineStatus);
+    };
+  }, []);
+  const [verificationTarget, setVerificationTarget] = useState<{
+    auctionId: number;
+    deadlineAt: string;
+  } | null>(null);
+  const verificationTargetRef = useRef<typeof verificationTarget>(null);
+  const requestDeadlineVerification = useCallback((auctionId: number, deadlineAt: string) => {
+    const current = verificationTargetRef.current;
+    if (current?.auctionId === auctionId && current.deadlineAt === deadlineAt) return;
+
+    const target = { auctionId, deadlineAt };
+    verificationTargetRef.current = target;
+    setVerificationTarget(target);
+    void queryClient.invalidateQueries({ queryKey: getGetLanceCashStateQueryKey() });
+  }, [queryClient]);
   const stateQuery = useGetLanceCashState({
-    query: { refetchInterval: realtimeConnected ? 30_000 : 3_000 },
+    query: {
+      refetchInterval: (query) => {
+        if (!verificationTarget) return realtimeConnected ? 15_000 : 3_000;
+        return query.state.status === 'error' ? 5_000 : 3_000;
+      },
+    },
   });
+  const serverConnectionLost = !browserOnline || stateQuery.isError && Boolean(stateQuery.data);
   useHealthCheck();
   const state = stateQuery.data as LanceCashState | undefined;
   const auctions = state?.auctions ?? [];
   const currentIndex = Math.max(0, auctions.findIndex((auction) => auction.id === state?.currentAuctionId));
   const currentAuction = auctions[currentIndex];
+  useEffect(() => {
+    if (!verificationTarget || !state) return;
+    const checkedAuction = state.auctions.find((auction) => auction.id === verificationTarget.auctionId);
+    if (
+      !checkedAuction ||
+      checkedAuction.status !== 'live' ||
+      checkedAuction.deadlineAt !== verificationTarget.deadlineAt
+    ) {
+      verificationTargetRef.current = null;
+      setVerificationTarget(null);
+    }
+  }, [state, verificationTarget]);
   const [visibleIndex, setVisibleIndex] = useState(0);
   const [historyRequest, setHistoryRequest] = useState<{ auctionId: number; before: number } | null>(null);
   const [historyExtra, setHistoryExtra] = useState<Record<number, AuctionBid[]>>({});
@@ -730,7 +790,7 @@ function LanceCash() {
   if (authQuery.isLoading || stateQuery.isLoading) return <LoadingView />;
   if (
     authQuery.isError && apiErrorStatus(authQuery.error) !== 401 ||
-    stateQuery.isError ||
+    stateQuery.isError && !stateQuery.data ||
     !state ||
     !visibleAuction ||
     !currentAuction
@@ -750,7 +810,12 @@ function LanceCash() {
   const currentLeaderIsUser = currentAuction?.leader === 'Você';
   const currentIsEnded = currentAuction?.status === 'ended';
   const isVisibleCurrent = visibleIndex === currentIndex;
-  const buttonDisabled = bidMutation.isPending || isAuthenticated && isVisibleCurrent && currentAuction?.status === 'live' && currentLeaderIsUser;
+  const isAwaitingVerification = Boolean(
+    currentAuction &&
+    verificationTarget?.auctionId === currentAuction.id &&
+    verificationTarget.deadlineAt === currentAuction.deadlineAt,
+  );
+  const buttonDisabled = bidMutation.isPending || isAwaitingVerification || isAuthenticated && isVisibleCurrent && currentAuction?.status === 'live' && currentLeaderIsUser;
   return (
     <main className="lc-app">
       <header className="lc-header">
@@ -780,6 +845,12 @@ function LanceCash() {
         <button className="lc-pager-button" type="button" aria-label="Leilão anterior" disabled={!hasPrevious} onClick={() => scrollToIndex(visibleIndex - 1)} data-testid="button-previous-auction"><ChevronLeft size={20} strokeWidth={3} /></button>
         <div className="lc-pager-caption">
           <span><b data-testid="text-auction-position">Leilão #{NUMBER.format(visibleAuction.id)}</b> · {statusLabel}</span>
+          <span className={`lc-realtime-status${realtimeConnected && !serverConnectionLost ? ' is-connected' : ''}`} role="status">
+            <i aria-hidden="true" />
+            {serverConnectionLost ? 'Sem conexão · cronômetro pausado'
+              : realtimeConnected ? 'Servidor conectado'
+                : 'Tempo real reconectando · sincronização ativa'}
+          </span>
           <div className="lc-dots" aria-hidden="true">
             {auctions.map((auction, index) => <i key={auction.id} className={`${index === visibleIndex ? 'selected ' : ''}${auction.id === state.currentAuctionId ? 'live' : ''}`} />)}
           </div>
@@ -815,7 +886,11 @@ function LanceCash() {
             && index === currentIndex
             && incomingBid?.auctionId === auction.id
             && incomingBid.bidNumber === auction.bidCount;
-          const leaderText = upcoming ? 'Em breve' : mine ? ended ? 'Você ganhou!' : 'Você' : auction.leader;
+          const isVerifyingAuction = verificationTarget?.auctionId === auction.id
+            && verificationTarget.deadlineAt === auction.deadlineAt;
+          const leaderText = upcoming ? 'Em breve'
+            : isVerifyingAuction ? 'Verificando resultado…'
+              : mine ? ended ? 'Você ganhou!' : 'Você' : auction.leader;
           return (
             <section
               className="lc-slide"
@@ -829,9 +904,13 @@ function LanceCash() {
                 </h1>
                 <section className={`lc-current${ended ? ' is-ended' : ''}${mine && !upcoming ? ' is-mine' : ''}${isIncomingBidVisible ? ' is-new-bid' : ''}`} aria-label="Lance atual" data-testid={`status-auction-${auction.id}`}>
                   <AuctionCountdown
+                    auctionId={auction.id}
                     status={auction.status}
                     deadlineAt={auction.deadlineAt}
                     serverOffsetRef={serverOffsetRef}
+                    isVerifying={isVerifyingAuction}
+                    isConnectionLost={serverConnectionLost}
+                    onDeadline={requestDeadlineVerification}
                   />
                   <div className="lc-current-copy">
                     <div className="lc-kicker lc-kicker-roll">
@@ -863,7 +942,8 @@ function LanceCash() {
                       </AnimatePresence>
                     </div>
                     <div className="lc-subline">
-                      {upcoming ? 'Começa quando o leilão anterior encerrar' : ended
+                      {isVerifyingAuction ? 'O servidor ainda está confirmando o resultado'
+                        : upcoming ? 'Começa quando o leilão anterior encerrar' : ended
                         ? mine ? `Você levou os ${BRL2.format(auction.prize)}` : `Levou os ${BRL2.format(auction.prize)}`
                         : mine ? 'Ao zerar, você leva o prêmio' : 'Ao zerar, quem deu o último lance leva o prêmio'}
                     </div>
@@ -913,12 +993,14 @@ function LanceCash() {
       <footer className="lc-footer">
         <p>
           {isVisibleCurrent
-            ? currentIsEnded ? 'Este leilão terminou' : currentAuction.usedBids ? `Você deu ${NUMBER.format(currentAuction.usedBids)} ${currentAuction.usedBids > 1 ? 'lances' : 'lance'} neste leilão` : 'Cada lance reinicia o tempo em 15 s'
+            ? isAwaitingVerification ? 'Aguardando confirmação do resultado pelo servidor…'
+              : currentIsEnded ? 'Este leilão terminou' : currentAuction.usedBids ? `Você deu ${NUMBER.format(currentAuction.usedBids)} ${currentAuction.usedBids > 1 ? 'lances' : 'lance'} neste leilão` : 'Cada lance reinicia o tempo em 15 s'
             : visibleIndex === currentIndex + 1 && currentIsEnded ? 'Este leilão ainda não começou'
               : visibleIndex < currentIndex ? 'Este leilão terminou' : 'Este leilão ainda não começou'}
         </p>
         <button className="lc-cta" type="button" onClick={() => void placeBid()} disabled={buttonDisabled} data-testid="button-place-bid">
-          {bidMutation.isPending ? 'Enviando lance…'
+          {isAwaitingVerification ? 'Verificando resultado…'
+            : bidMutation.isPending ? 'Enviando lance…'
             : isVisibleCurrent ? !isAuthenticated ? 'Entrar para participar' : currentIsEnded ? 'Próximo leilão' : currentLeaderIsUser ? 'Você deu o último lance' : state.balance ? 'Dar lance' : 'Comprar lances'
               : visibleIndex === currentIndex + 1 && currentIsEnded ? 'Começar este leilão'
                 : currentAuction.status === 'ended' ? 'Ir para o leilão mais recente' : 'Voltar ao leilão ao vivo'}
