@@ -1,0 +1,1 @@
+- [External database schema drift](external-database-schema.md) — keep unmodeled auth columns and tables until their ownership and data usage are confirmed.
