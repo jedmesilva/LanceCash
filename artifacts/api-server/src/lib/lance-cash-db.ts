@@ -22,6 +22,7 @@ import {
   userSessionsTable,
   usersTable,
 } from "@workspace/db";
+import { hashPassword, verifyPassword } from "./passwords";
 
 type AuctionStatus = "live" | "ended" | "upcoming";
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -114,7 +115,7 @@ async function seedAuction(
   );
 }
 
-async function ensureDemoData(): Promise<string> {
+export async function ensureDemoData(): Promise<string> {
   if (demoDataReady) {
     const [demoUser] = await db
       .select({ id: usersTable.id })
@@ -471,6 +472,27 @@ export async function readState(sessionId: string) {
   });
 }
 
+const publicSessionId = "lance-cash-public-auctions";
+
+export async function readPublicState() {
+  const state = await readState(publicSessionId);
+  return {
+    ...state,
+    balance: 0,
+    user: null,
+    prizes: [],
+    auctions: state.auctions.map((auction) => ({
+      ...auction,
+      leader: auction.leader === "Você" ? "Participante" : auction.leader,
+      usedBids: 0,
+      bids: auction.bids.map((bid) => ({
+        ...bid,
+        leader: bid.leader === "Você" ? "Participante" : bid.leader,
+      })),
+    })),
+  };
+}
+
 export async function readOlderBids(
   sessionId: string,
   auctionId: number,
@@ -733,6 +755,22 @@ export async function updateProfile(input: {
   }
 
   const userId = await getSessionUserId(input.sessionId);
+  if (changingPassword) {
+    const [account] = await db
+      .select({ passwordHash: usersTable.passwordHash })
+      .from(usersTable)
+      .where(eq(usersTable.id, userId))
+      .limit(1);
+    if (!account?.passwordHash) {
+      return {
+        error: "A conta de demonstração não possui senha para alterar.",
+      } as const;
+    }
+    if (!(await verifyPassword(input.currentPassword ?? "", account.passwordHash))) {
+      return { error: "A senha atual está incorreta." } as const;
+    }
+  }
+
   const email = input.email.trim().toLowerCase();
   const [emailOwner] = await db
     .select({ id: usersTable.id })
@@ -748,6 +786,9 @@ export async function updateProfile(input: {
     .set({
       name: input.name.trim(),
       email,
+      ...(changingPassword
+        ? { passwordHash: await hashPassword(input.newPassword ?? "") }
+        : {}),
       updatedAt: new Date(),
     })
     .where(eq(usersTable.id, userId));

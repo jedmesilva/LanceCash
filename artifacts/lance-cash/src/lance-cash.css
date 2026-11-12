@@ -51,6 +51,8 @@ button:disabled { cursor: default; }
 }
 .lc-brand { display: flex; align-items: center; gap: var(--lc-space-3); font: 800 18px var(--lc-display); letter-spacing: -.02em; }
 .lc-actions { display: flex; align-items: center; gap: 8px; }
+.lc-header-login { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: var(--lc-radius-pill); background: var(--lc-lime); color: var(--lc-on-lime); font: 800 15px var(--lc-display); transition: transform var(--lc-motion-fast); }
+.lc-header-login:active { transform: scale(.97); }
 .lc-balance {
   display: flex;
   height: 44px;

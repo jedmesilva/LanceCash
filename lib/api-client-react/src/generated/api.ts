@@ -21,14 +21,15 @@ import type {
 
 import type {
   AuctionBidPage,
+  AuthCredentialsInput,
+  AuthRegistrationInput,
+  AuthResponse,
   GetLanceCashAuctionBidsParams,
-  GetLanceCashStateParams,
   HealthStatus,
   LanceCashState,
   PlaceBidInput,
   ProfileUpdateInput,
-  PurchasePackageInput,
-  SessionInput
+  PurchasePackageInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -136,27 +137,20 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
-export const getGetLanceCashStateUrl = (params: GetLanceCashStateParams,) => {
-  const normalizedParams = new URLSearchParams();
+export const getGetAuthMeUrl = () => {
 
-  Object.entries(params || {}).forEach(([key, value]) => {
 
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/lance-cash/state?${stringifiedParams}` : `/api/lance-cash/state`
+  return `/api/auth/me`
 }
 
 /**
- * @summary Get the current Lance Cash state
+ * @summary Get the current authenticated account
  */
-export const getLanceCashState = async (params: GetLanceCashStateParams, options?: Parameters<typeof customFetch>[1]): Promise<LanceCashState> => {
+export const getAuthMe = async ( options?: Parameters<typeof customFetch>[1]): Promise<AuthResponse> => {
 
-  return customFetch<LanceCashState>(getGetLanceCashStateUrl(params),
+  return customFetch<AuthResponse>(getGetAuthMeUrl(),
   {
     ...options,
     method: 'GET'
@@ -169,23 +163,424 @@ export const getLanceCashState = async (params: GetLanceCashStateParams, options
 
 
 
-export const getGetLanceCashStateQueryKey = (params?: GetLanceCashStateParams,) => {
+export const getGetAuthMeQueryKey = () => {
     return [
-    `/api/lance-cash/state`, ...(params ? [params] : [])
+    `/api/auth/me`
     ] as const;
     }
 
 
-export const getGetLanceCashStateQueryOptions = <TData = Awaited<ReturnType<typeof getLanceCashState>>, TError = ErrorType<void>>(params: GetLanceCashStateParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLanceCashState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetAuthMeQueryOptions = <TData = Awaited<ReturnType<typeof getAuthMe>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAuthMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetLanceCashStateQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getGetAuthMeQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLanceCashState>>> = ({ signal }) => getLanceCashState(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAuthMe>>> = ({ signal }) => getAuthMe({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAuthMe>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAuthMeQueryResult = NonNullable<Awaited<ReturnType<typeof getAuthMe>>>
+export type GetAuthMeQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the current authenticated account
+ */
+
+export function useGetAuthMe<TData = Awaited<ReturnType<typeof getAuthMe>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAuthMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAuthMeQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPostAuthRegisterUrl = () => {
+
+
+
+
+  return `/api/auth/register`
+}
+
+/**
+ * @summary Create an account
+ */
+export const postAuthRegister = async (authRegistrationInput: AuthRegistrationInput, options?: Parameters<typeof customFetch>[1]): Promise<AuthResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AuthResponse>(getPostAuthRegisterUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(authRegistrationInput)
+  }
+);}
+
+
+
+
+
+export const getPostAuthRegisterMutationKey = () => ['postAuthRegister'] as const;
+
+export const getPostAuthRegisterMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postAuthRegister>>, TError,PostAuthRegisterMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postAuthRegister>>, TError,PostAuthRegisterMutationVariables, TContext> => {
+
+const mutationKey = getPostAuthRegisterMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postAuthRegister>>, PostAuthRegisterMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  postAuthRegister(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostAuthRegisterMutationResult = NonNullable<Awaited<ReturnType<typeof postAuthRegister>>>
+    export type PostAuthRegisterMutationBody = BodyType<AuthRegistrationInput>
+    export type PostAuthRegisterMutationError = ErrorType<void>
+    export type PostAuthRegisterMutationVariables = {data: BodyType<AuthRegistrationInput>}
+
+    /**
+ * @summary Create an account
+ */
+export const usePostAuthRegister = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postAuthRegister>>, TError,PostAuthRegisterMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof postAuthRegister>>,
+        TError,
+        PostAuthRegisterMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPostAuthRegisterMutationOptions(options));
+    }
+
+export const getPostAuthLoginUrl = () => {
+
+
+
+
+  return `/api/auth/login`
+}
+
+/**
+ * @summary Sign in to an account
+ */
+export const postAuthLogin = async (authCredentialsInput: AuthCredentialsInput, options?: Parameters<typeof customFetch>[1]): Promise<AuthResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AuthResponse>(getPostAuthLoginUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(authCredentialsInput)
+  }
+);}
+
+
+
+
+
+export const getPostAuthLoginMutationKey = () => ['postAuthLogin'] as const;
+
+export const getPostAuthLoginMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postAuthLogin>>, TError,PostAuthLoginMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postAuthLogin>>, TError,PostAuthLoginMutationVariables, TContext> => {
+
+const mutationKey = getPostAuthLoginMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postAuthLogin>>, PostAuthLoginMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  postAuthLogin(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostAuthLoginMutationResult = NonNullable<Awaited<ReturnType<typeof postAuthLogin>>>
+    export type PostAuthLoginMutationBody = BodyType<AuthCredentialsInput>
+    export type PostAuthLoginMutationError = ErrorType<void>
+    export type PostAuthLoginMutationVariables = {data: BodyType<AuthCredentialsInput>}
+
+    /**
+ * @summary Sign in to an account
+ */
+export const usePostAuthLogin = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postAuthLogin>>, TError,PostAuthLoginMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof postAuthLogin>>,
+        TError,
+        PostAuthLoginMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPostAuthLoginMutationOptions(options));
+    }
+
+export const getPostAuthDemoUrl = () => {
+
+
+
+
+  return `/api/auth/demo`
+}
+
+/**
+ * @summary Start a demonstration account session
+ */
+export const postAuthDemo = async ( options?: Parameters<typeof customFetch>[1]): Promise<AuthResponse> => {
+
+  return customFetch<AuthResponse>(getPostAuthDemoUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getPostAuthDemoMutationKey = () => ['postAuthDemo'] as const;
+
+export const getPostAuthDemoMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postAuthDemo>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postAuthDemo>>, TError,void, TContext> => {
+
+const mutationKey = getPostAuthDemoMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postAuthDemo>>, void> = () => {
+
+
+          return  postAuthDemo(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostAuthDemoMutationResult = NonNullable<Awaited<ReturnType<typeof postAuthDemo>>>
+
+    export type PostAuthDemoMutationError = ErrorType<unknown>
+
+
+    /**
+ * @summary Start a demonstration account session
+ */
+export const usePostAuthDemo = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postAuthDemo>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof postAuthDemo>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getPostAuthDemoMutationOptions(options));
+    }
+
+export const getPostAuthLogoutUrl = () => {
+
+
+
+
+  return `/api/auth/logout`
+}
+
+/**
+ * @summary Sign out the current account
+ */
+export const postAuthLogout = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getPostAuthLogoutUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getPostAuthLogoutMutationKey = () => ['postAuthLogout'] as const;
+
+export const getPostAuthLogoutMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postAuthLogout>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postAuthLogout>>, TError,void, TContext> => {
+
+const mutationKey = getPostAuthLogoutMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postAuthLogout>>, void> = () => {
+
+
+          return  postAuthLogout(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostAuthLogoutMutationResult = NonNullable<Awaited<ReturnType<typeof postAuthLogout>>>
+
+    export type PostAuthLogoutMutationError = ErrorType<unknown>
+
+
+    /**
+ * @summary Sign out the current account
+ */
+export const usePostAuthLogout = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postAuthLogout>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof postAuthLogout>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getPostAuthLogoutMutationOptions(options));
+    }
+
+export const getGetLanceCashStateUrl = () => {
+
+
+
+
+  return `/api/lance-cash/state`
+}
+
+/**
+ * @summary Get the current Lance Cash state
+ */
+export const getLanceCashState = async ( options?: Parameters<typeof customFetch>[1]): Promise<LanceCashState> => {
+
+  return customFetch<LanceCashState>(getGetLanceCashStateUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLanceCashStateQueryKey = () => {
+    return [
+    `/api/lance-cash/state`
+    ] as const;
+    }
+
+
+export const getGetLanceCashStateQueryOptions = <TData = Awaited<ReturnType<typeof getLanceCashState>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLanceCashState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLanceCashStateQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLanceCashState>>> = ({ signal }) => getLanceCashState({ signal, ...requestOptions });
 
 
 
@@ -195,19 +590,19 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetLanceCashStateQueryResult = NonNullable<Awaited<ReturnType<typeof getLanceCashState>>>
-export type GetLanceCashStateQueryError = ErrorType<void>
+export type GetLanceCashStateQueryError = ErrorType<unknown>
 
 
 /**
  * @summary Get the current Lance Cash state
  */
 
-export function useGetLanceCashState<TData = Awaited<ReturnType<typeof getLanceCashState>>, TError = ErrorType<void>>(
- params: GetLanceCashStateParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLanceCashState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useGetLanceCashState<TData = Awaited<ReturnType<typeof getLanceCashState>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLanceCashState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetLanceCashStateQueryOptions(params,options)
+  const queryOptions = getGetLanceCashStateQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -579,29 +974,14 @@ export const getRedeemLanceCashPrizeUrl = (auctionId: number,) => {
 /**
  * @summary Mark a simulated prize as redeemed
  */
-export const redeemLanceCashPrize = async (auctionId: number,
-    sessionInput: SessionInput, options?: Parameters<typeof customFetch>[1]): Promise<LanceCashState> => {
+export const redeemLanceCashPrize = async (auctionId: number, options?: Parameters<typeof customFetch>[1]): Promise<LanceCashState> => {
 
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return customFetch<LanceCashState>(getRedeemLanceCashPrizeUrl(auctionId),
+  return customFetch<LanceCashState>(getRedeemLanceCashPrizeUrl(auctionId),
   {
     ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(sessionInput)
+    method: 'POST'
+
+
   }
 );}
 
@@ -626,9 +1006,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof redeemLanceCashPrize>>, RedeemLanceCashPrizeMutationVariables> = (props) => {
-          const {auctionId,data} = props ?? {};
+          const {auctionId} = props ?? {};
 
-          return  redeemLanceCashPrize(auctionId,data,requestOptions)
+          return  redeemLanceCashPrize(auctionId,requestOptions)
         }
 
 
@@ -639,9 +1019,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type RedeemLanceCashPrizeMutationResult = NonNullable<Awaited<ReturnType<typeof redeemLanceCashPrize>>>
-    export type RedeemLanceCashPrizeMutationBody = BodyType<SessionInput>
+
     export type RedeemLanceCashPrizeMutationError = ErrorType<void>
-    export type RedeemLanceCashPrizeMutationVariables = {auctionId: number;data: BodyType<SessionInput>}
+    export type RedeemLanceCashPrizeMutationVariables = {auctionId: number}
 
     /**
  * @summary Mark a simulated prize as redeemed

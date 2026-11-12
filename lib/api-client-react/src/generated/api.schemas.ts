@@ -9,20 +9,43 @@ export interface HealthStatus {
   status: string;
 }
 
-export interface SessionInput {
+export interface AuthCredentialsInput {
+  /** @maxLength 320 */
+  email: string;
   /**
      * @minLength 8
-     * @maxLength 80
+     * @maxLength 200
      */
-  sessionId: string;
+  password: string;
+}
+
+export interface AuthRegistrationInput {
+  /**
+     * @minLength 2
+     * @maxLength 120
+     */
+  name: string;
+  /** @maxLength 320 */
+  email: string;
+  /**
+     * @minLength 8
+     * @maxLength 200
+     */
+  password: string;
+}
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  isDemo: boolean;
+}
+
+export interface AuthResponse {
+  user: AuthUser;
 }
 
 export interface PlaceBidInput {
-  /**
-     * @minLength 8
-     * @maxLength 80
-     */
-  sessionId: string;
   /** @minimum 1 */
   auctionId: number;
 }
@@ -38,21 +61,11 @@ export const PurchasePackageInputPackageId = {
 } as const;
 
 export interface PurchasePackageInput {
-  /**
-     * @minLength 8
-     * @maxLength 80
-     */
-  sessionId: string;
   packageId: PurchasePackageInputPackageId;
   requestId?: string;
 }
 
 export interface ProfileUpdateInput {
-  /**
-     * @minLength 8
-     * @maxLength 80
-     */
-  sessionId: string;
   /**
      * @minLength 1
      * @maxLength 120
@@ -144,30 +157,17 @@ export interface LanceCashState {
   balance: number;
   currentAuctionId: number;
   serverTime: string;
-  user: LanceCashUser;
+  user: LanceCashUser | null;
   auctions: LanceCashAuction[];
   packages: LancePackage[];
   prizes: LanceCashPrize[];
 }
-
-export type GetLanceCashStateParams = {
-/**
- * @minLength 8
- * @maxLength 80
- */
-sessionId: string;
-};
 
 export type GetLanceCashAuctionBidsParams = {
 /**
  * @minimum 1
  */
 auctionId: number;
-/**
- * @minLength 8
- * @maxLength 80
- */
-sessionId: string;
 /**
  * @minimum 1
  */

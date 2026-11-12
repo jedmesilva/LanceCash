@@ -81,6 +81,7 @@ function LanceCash() {
   const [historyExtra, setHistoryExtra] = useState<Record<number, AuctionBid[]>>({});
   const [selectedPackageId, setSelectedPackageId] = useState('popular');
   const [toastText, setToastText] = useState('');
+  const [isDemoSession, setIsDemoSession] = useState(false);
   const [accountView, setAccountView] = useState<'main' | 'prizes' | 'profile'>('main');
   const [accountNotice, setAccountNotice] = useState('');
   const [authMode, setAuthMode] = useState<'in' | 'up' | 'reset'>('in');
@@ -203,9 +204,17 @@ function LanceCash() {
   };
 
   const openPurchase = () => {
+    if (!isDemoSession) {
+      openAuth();
+      return;
+    }
     if (!purchaseDialogRef.current?.open) purchaseDialogRef.current?.showModal();
   };
   const openAccount = () => {
+    if (!isDemoSession) {
+      openAuth();
+      return;
+    }
     setAccountView('main');
     setAccountNotice('');
     accountDialogRef.current?.showModal();
@@ -218,7 +227,9 @@ function LanceCash() {
     setAuthErrors({});
     setAuthNotice('');
     setAuthShowPassword(false);
-    const showAuth = () => authDialogRef.current?.showModal();
+    const showAuth = () => {
+      if (!authDialogRef.current?.open) authDialogRef.current?.showModal();
+    };
     if (accountDialogRef.current?.open) {
       accountDialogRef.current.close();
       window.requestAnimationFrame(showAuth);
@@ -246,12 +257,16 @@ function LanceCash() {
     if (Object.keys(errors).length) return;
     setAuthNotice(authMode === 'reset'
       ? 'A recuperação por e-mail ainda não está conectada a este protótipo.'
-      : 'A autenticação ainda não está conectada. Você pode continuar usando a conta de demonstração.');
+      : 'A autenticação real ainda não está conectada. Use o modo de demonstração para acessar saldo e lances.');
   };
   const selectedPackage = state?.packages.find((item) => item.id === selectedPackageId) ?? state?.packages[0];
   const getDeadlineMs = (auction: LanceCashAuction) => auction.deadlineAt ? Date.parse(auction.deadlineAt) : 0;
 
   const placeBid = async () => {
+    if (!isDemoSession) {
+      openAuth();
+      return;
+    }
     if (!state || !currentAuction) return;
     if (currentAuction.status === 'ended' && visibleIndex >= currentIndex && visibleIndex <= currentIndex + 1) {
       const targetAuction = visibleIndex === currentIndex
@@ -413,7 +428,7 @@ function LanceCash() {
   const currentLeaderIsUser = currentAuction?.leader === 'Você';
   const currentIsEnded = currentAuction?.status === 'ended';
   const isVisibleCurrent = visibleIndex === currentIndex;
-  const buttonDisabled = isVisibleCurrent && currentAuction?.status === 'live' && currentLeaderIsUser || bidMutation.isPending;
+  const buttonDisabled = bidMutation.isPending || isDemoSession && isVisibleCurrent && currentAuction?.status === 'live' && currentLeaderIsUser;
   const historyBusy = historyRequest !== null && historyQuery.isFetching;
 
   return (
@@ -421,14 +436,23 @@ function LanceCash() {
       <header className="lc-header">
         <div className="lc-brand"><LogoMark /> Lance Cash</div>
         <div className="lc-actions">
-          <button className="lc-balance" type="button" onClick={openPurchase} aria-label={`Você tem ${state.balance} ${state.balance === 1 ? 'lance' : 'lances'}. Comprar mais`} data-testid="button-buy-bids">
-            <Zap size={16} fill="currentColor" aria-hidden="true" />
-            <span data-testid="text-balance">{NUMBER.format(state.balance)} {state.balance === 1 ? 'lance' : 'lances'}</span>
-            <span className="lc-plus"><Plus size={16} strokeWidth={3} /></span>
-          </button>
-          <button className="lc-avatar" type="button" onClick={openAccount} aria-label="Abrir minha conta" aria-haspopup="dialog" data-testid="button-open-account">
-            {state.user.name.trim()[0]?.toUpperCase() || 'V'}
-          </button>
+          {isDemoSession ? (
+            <>
+              <button className="lc-balance" type="button" onClick={openPurchase} aria-label={`Você tem ${state.balance} ${state.balance === 1 ? 'lance' : 'lances'}. Comprar mais`} data-testid="button-buy-bids">
+                <Zap size={16} fill="currentColor" aria-hidden="true" />
+                <span data-testid="text-balance">{NUMBER.format(state.balance)} {state.balance === 1 ? 'lance' : 'lances'}</span>
+                <span className="lc-plus"><Plus size={16} strokeWidth={3} /></span>
+              </button>
+              <button className="lc-avatar" type="button" onClick={openAccount} aria-label="Abrir minha conta" aria-haspopup="dialog" data-testid="button-open-account">
+                {state.user.name.trim()[0]?.toUpperCase() || 'V'}
+              </button>
+            </>
+          ) : (
+            <button className="lc-header-login" type="button" onClick={openAuth} aria-haspopup="dialog" data-testid="button-open-auth">
+              <LogIn size={17} strokeWidth={2.5} aria-hidden="true" />
+              Entrar
+            </button>
+          )}
         </div>
       </header>
 
@@ -547,7 +571,7 @@ function LanceCash() {
         </p>
         <button className="lc-cta" type="button" onClick={() => void placeBid()} disabled={buttonDisabled} data-testid="button-place-bid">
           {bidMutation.isPending ? 'Enviando lance…'
-            : isVisibleCurrent ? currentIsEnded ? 'Próximo leilão' : currentLeaderIsUser ? 'Você deu o último lance' : state.balance ? 'Dar lance' : 'Comprar lances'
+            : isVisibleCurrent ? !isDemoSession ? 'Entrar para participar' : currentIsEnded ? 'Próximo leilão' : currentLeaderIsUser ? 'Você deu o último lance' : state.balance ? 'Dar lance' : 'Comprar lances'
               : visibleIndex === currentIndex + 1 && currentIsEnded ? 'Começar este leilão'
                 : currentAuction.status === 'ended' ? 'Ir para o leilão mais recente' : 'Voltar ao leilão ao vivo'}
         </button>
@@ -613,12 +637,7 @@ function LanceCash() {
                 <span className="lc-user-copy"><b>Meus prêmios</b><small>{state.prizes.length ? `${state.prizes.length} ${state.prizes.length > 1 ? 'prêmios' : 'prêmio'}` : 'Nenhum prêmio ainda'}</small></span>
                 <ChevronRight size={18} strokeWidth={3} />
               </button>
-              <button className="lc-row-button" type="button" onClick={openAuth} aria-haspopup="dialog" data-testid="button-open-auth">
-                <span className="lc-icon-disc"><LogIn size={20} strokeWidth={2.5} /></span>
-                <span className="lc-user-copy"><b>Entrar ou criar conta</b><small>Veja as opções de acesso</small></span>
-                <ChevronRight size={18} strokeWidth={3} />
-              </button>
-              <button className="lc-cta secondary" type="button" onClick={() => { accountDialogRef.current?.close(); showToast('Você saiu da conta (simulado)'); }} data-testid="button-simulated-signout">Sair da conta</button>
+              <button className="lc-cta secondary" type="button" onClick={() => { setIsDemoSession(false); accountDialogRef.current?.close(); showToast('Você saiu da conta de demonstração.'); }} data-testid="button-simulated-signout">Sair da conta</button>
             </section>
           )}
 
@@ -735,8 +754,8 @@ function LanceCash() {
             </button>
           </p>
           <div className="lc-auth-demo">
-            <p>Este protótipo usa uma conta de demonstração; nenhuma senha é armazenada.</p>
-            <button type="button" onClick={() => { authDialogRef.current?.close(); showToast('Você já está usando a conta de demonstração.'); }} data-testid="button-continue-demo">Continuar no modo demonstração</button>
+            <p>Sem autenticação real conectada. A conta de demonstração permite testar saldo e lances.</p>
+            <button type="button" onClick={() => { setIsDemoSession(true); authDialogRef.current?.close(); showToast('Conta de demonstração ativada.'); }} data-testid="button-continue-demo">Entrar no modo demonstração</button>
           </div>
         </div>
       </dialog>

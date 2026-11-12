@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Account authentication operations
   - name: lance-cash
     description: Lance Cash prototype operations
 paths:
@@ -26,19 +28,89 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /auth/me:
+    get:
+      operationId: getAuthMe
+      tags: [auth]
+      summary: Get the current authenticated account
+      responses:
+        "200":
+          description: Current authenticated account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: No valid account session
+  /auth/register:
+    post:
+      operationId: postAuthRegister
+      tags: [auth]
+      summary: Create an account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthRegistrationInput"
+      responses:
+        "201":
+          description: Account created and signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Invalid account details
+        "409":
+          description: Email is already in use
+  /auth/login:
+    post:
+      operationId: postAuthLogin
+      tags: [auth]
+      summary: Sign in to an account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthCredentialsInput"
+      responses:
+        "200":
+          description: Account signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Invalid account details
+        "401":
+          description: Email or password is incorrect
+  /auth/demo:
+    post:
+      operationId: postAuthDemo
+      tags: [auth]
+      summary: Start a demonstration account session
+      responses:
+        "200":
+          description: Demonstration account signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+  /auth/logout:
+    post:
+      operationId: postAuthLogout
+      tags: [auth]
+      summary: Sign out the current account
+      responses:
+        "204":
+          description: Account session ended
   /lance-cash/state:
     get:
       operationId: getLanceCashState
       tags: [lance-cash]
       summary: Get the current Lance Cash state
-      parameters:
-        - name: sessionId
-          in: query
-          required: true
-          schema:
-            type: string
-            minLength: 8
-            maxLength: 80
       responses:
         "200":
           description: Current account and auction state
@@ -46,8 +118,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/LanceCashState"
-        "400":
-          description: Invalid session
   /lance-cash/bids/history:
     get:
       operationId: getLanceCashAuctionBids
@@ -60,13 +130,6 @@ paths:
           schema:
             type: integer
             minimum: 1
-        - name: sessionId
-          in: query
-          required: true
-          schema:
-            type: string
-            minLength: 8
-            maxLength: 80
         - name: before
           in: query
           required: true
@@ -154,12 +217,6 @@ paths:
           schema:
             type: integer
             minimum: 1
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/SessionInput"
       responses:
         "200":
           description: Updated account and auction state
@@ -180,46 +237,74 @@ components:
           type: string
       required:
         - status
-    SessionInput:
+    AuthCredentialsInput:
       type: object
       properties:
-        sessionId:
+        email:
+          type: string
+          format: email
+          maxLength: 320
+        password:
           type: string
           minLength: 8
-          maxLength: 80
-      required: [sessionId]
+          maxLength: 200
+      required: [email, password]
+    AuthRegistrationInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 120
+        email:
+          type: string
+          format: email
+          maxLength: 320
+        password:
+          type: string
+          minLength: 8
+          maxLength: 200
+      required: [name, email, password]
+    AuthUser:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        isDemo:
+          type: boolean
+      required: [id, name, email, isDemo]
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/AuthUser"
+      required: [user]
     PlaceBidInput:
       type: object
       properties:
-        sessionId:
-          type: string
-          minLength: 8
-          maxLength: 80
         auctionId:
           type: integer
           minimum: 1
-      required: [sessionId, auctionId]
+      required: [auctionId]
     PurchasePackageInput:
       type: object
       properties:
-        sessionId:
-          type: string
-          minLength: 8
-          maxLength: 80
         packageId:
           type: string
           enum: [starter, value, popular, best]
         requestId:
           type: string
           format: uuid
-      required: [sessionId, packageId]
+      required: [packageId]
     ProfileUpdateInput:
       type: object
       properties:
-        sessionId:
-          type: string
-          minLength: 8
-          maxLength: 80
         name:
           type: string
           minLength: 1
@@ -238,7 +323,7 @@ components:
         confirmPassword:
           type: string
           maxLength: 200
-      required: [sessionId, name, email]
+      required: [name, email]
     AuctionBid:
       type: object
       properties:
@@ -350,7 +435,9 @@ components:
           type: string
           format: date-time
         user:
-          $ref: "#/components/schemas/LanceCashUser"
+          oneOf:
+            - $ref: "#/components/schemas/LanceCashUser"
+            - type: "null"
         auctions:
           type: array
           items:
