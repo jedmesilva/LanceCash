@@ -189,12 +189,30 @@ button:disabled { cursor: default; }
 .lc-error { width: 100%; max-width: 480px; margin: auto; padding: 24px 20px; text-align: center; }
 .lc-error h1 { margin: 0; font: 800 26px var(--lc-display); }
 .lc-error p { color: var(--lc-muted); }
-.lc-skeleton { width: 100%; max-width: 480px; margin: 0 auto; padding: 20px; }
-.lc-skel { overflow: hidden; position: relative; border-radius: 20px; background: var(--lc-line); }
-.lc-skel::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--lc-surface) 65%, transparent), transparent); animation: lc-shimmer 1.4s infinite; }
-.lc-skel-prize { height: 90px; margin: 10px 0 24px; border-radius: 18px; }
-.lc-skel-current { height: 92px; }
-.lc-skel-row { height: 62px; margin-top: 10px; border-radius: 12px; }
+.lc-skel { position: relative; display: block; overflow: hidden; border-radius: 12px; background: var(--lc-line); }
+.lc-skel::after { position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--lc-surface) 65%, transparent), transparent); content: ""; animation: lc-shimmer 1.4s infinite; }
+.lc-skel-header-login { width: 104px; height: 44px; border-radius: var(--lc-radius-pill); }
+.lc-skel-pager-line { width: 116px; height: 12px; border-radius: var(--lc-radius-pill); }
+.lc-skel-pager-control { width: 18px; height: 18px; border-radius: 6px; }
+.lc-skel-dot { width: 6px; height: 6px; border-radius: var(--lc-radius-circle); }
+.lc-skel-dot-selected { width: 18px; border-radius: var(--lc-radius-pill); }
+.lc-loading-prize { display: flex; align-items: baseline; justify-content: center; gap: 8px; }
+.lc-skel-currency { width: 34px; height: 25px; transform: translateY(-.42em); border-radius: 7px; }
+.lc-skel-prize-value { width: min(78%, 340px); height: .82em; border-radius: 12px; }
+.lc-loading-current { display: flex; align-items: center; gap: var(--lc-space-6); min-height: 92px; padding: 14px 18px 14px 14px; border: 2px solid var(--lc-line); border-radius: var(--lc-radius-feature); background: color-mix(in srgb, var(--lc-line) 16%, var(--lc-surface)); }
+.lc-skel-current-ring { flex: none; width: 60px; height: 60px; border-radius: var(--lc-radius-circle); }
+.lc-loading-current-copy { display: grid; flex: 1; gap: 7px; min-width: 0; }
+.lc-skel-kicker { width: 124px; height: 11px; }
+.lc-skel-leader { width: 45%; height: 24px; }
+.lc-skel-subline { width: 72%; height: 11px; }
+.lc-skel-bid-title { width: 140px; height: 18px; }
+.lc-skel-bid-count { width: 28px; height: 14px; }
+.lc-skel-avatar { flex: none; width: 38px; height: 38px; border-radius: var(--lc-radius-circle); }
+.lc-skel-bid-name { width: 116px; height: 14px; margin-bottom: 6px; }
+.lc-skel-bid-number { width: 70px; height: 12px; }
+.lc-skel-bid-time { width: 48px; height: 12px; }
+.lc-skel-footer-copy { width: 165px; height: 13px; margin: 0 auto 10px; }
+.lc-skel-footer-button { border-radius: var(--lc-radius-card); }
 .lc-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @keyframes lc-pulse { 50% { transform: scale(1.07); } }
 @keyframes lc-flash { from { background: color-mix(in srgb, var(--lc-lime) 60%, transparent); } }

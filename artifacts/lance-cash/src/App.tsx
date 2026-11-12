@@ -55,12 +55,71 @@ function apiErrorMessage(error: unknown, fallback: string): string {
 
 function LoadingView() {
   return (
-    <main className="lc-skeleton" aria-label="Carregando leilões">
-      <div className="lc-skel lc-skel-prize" />
-      <div className="lc-skel lc-skel-current" />
-      <div className="lc-skel lc-skel-row" />
-      <div className="lc-skel lc-skel-row" />
-      <div className="lc-skel lc-skel-row" />
+    <main className="lc-app" aria-label="Carregando leilões" aria-busy="true">
+      <header className="lc-header">
+        <div className="lc-brand"><LogoMark /> Lance Cash</div>
+        <div className="lc-actions">
+          <span className="lc-skel lc-skel-header-login" aria-hidden="true" />
+        </div>
+      </header>
+
+      <nav className="lc-pager" aria-hidden="true">
+        <span className="lc-pager-button"><span className="lc-skel lc-skel-pager-control" /></span>
+        <div className="lc-pager-caption">
+          <span className="lc-skel lc-skel-pager-line" />
+          <div className="lc-dots">
+            <span className="lc-skel lc-skel-dot" />
+            <span className="lc-skel lc-skel-dot" />
+            <span className="lc-skel lc-skel-dot lc-skel-dot-selected" />
+            <span className="lc-skel lc-skel-dot" />
+            <span className="lc-skel lc-skel-dot" />
+          </div>
+        </div>
+        <span className="lc-pager-button"><span className="lc-skel lc-skel-pager-control" /></span>
+      </nav>
+
+      <div className="lc-slides" aria-hidden="true">
+        <section className="lc-slide">
+          <div className="lc-slide-inner">
+            <h1 className="lc-prize lc-loading-prize">
+              <span className="lc-skel lc-skel-currency" />
+              <span className="lc-skel lc-skel-prize-value" />
+            </h1>
+
+            <section className="lc-loading-current">
+              <span className="lc-skel lc-skel-current-ring" />
+              <div className="lc-loading-current-copy">
+                <span className="lc-skel lc-skel-kicker" />
+                <span className="lc-skel lc-skel-leader" />
+                <span className="lc-skel lc-skel-subline" />
+              </div>
+            </section>
+
+            <h2 className="lc-section-title">
+              <span className="lc-skel lc-skel-bid-title" />
+              <span className="lc-skel lc-skel-bid-count" />
+            </h2>
+
+            <ol className="lc-bid-list">
+              {Array.from({ length: 8 }, (_, index) => (
+                <li className="lc-bid-row" key={index}>
+                  <span className="lc-skel lc-skel-avatar" />
+                  <div className="lc-bid-meta">
+                    <span className="lc-skel lc-skel-bid-name" />
+                    <span className="lc-skel lc-skel-bid-number" />
+                  </div>
+                  <span className="lc-skel lc-skel-bid-time" />
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+      </div>
+
+      <footer className="lc-footer" aria-hidden="true">
+        <p><span className="lc-skel lc-skel-footer-copy" /></p>
+        <div className="lc-cta lc-skel lc-skel-footer-button" />
+      </footer>
     </main>
   );
 }
