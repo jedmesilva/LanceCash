@@ -272,6 +272,7 @@ function LanceCash() {
   const [toastTimer, setToastTimer] = useState<number | null>(null);
   const [offsetScroll, setOffsetScroll] = useState<number | null>(null);
   const slidesRef = useRef<HTMLDivElement>(null);
+  const bidListRefs = useRef(new Map<number, HTMLOListElement>());
   const purchaseDialogRef = useRef<HTMLDialogElement>(null);
   const accountDialogRef = useRef<HTMLDialogElement>(null);
   const authDialogRef = useRef<HTMLDialogElement>(null);
@@ -399,6 +400,20 @@ function LanceCash() {
     });
     setHistoryRequest(null);
   }, [historyQuery.data, historyRequest]);
+
+  useEffect(() => {
+    if (!incomingBid || visibleAuction?.id !== incomingBid.auctionId) return;
+    const element = bidListRefs.current.get(incomingBid.auctionId);
+    if (!element) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      element.scrollTo({
+        top: 0,
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [incomingBid, visibleAuction?.id]);
 
   const patchState = (next: LanceCashState) => {
     queryClient.setQueryData(getGetLanceCashStateQueryKey(), next);
@@ -749,19 +764,6 @@ function LanceCash() {
               aria-label={`Leilão #${auction.id}`}
               key={auction.id}
               data-testid={`section-auction-${auction.id}`}
-              onScroll={(event) => {
-                if (historyRequest !== null || historyQuery.isFetching || upcoming) return;
-                const element = event.currentTarget;
-                if (element.scrollTop + element.clientHeight < element.scrollHeight - 180) return;
-                const loaded = [
-                  ...(historyExtra[auction.id] ?? []),
-                  ...auction.bids,
-                ];
-                const oldest = loaded.length
-                  ? Math.min(...loaded.map((bid) => bid.number))
-                  : 1;
-                if (oldest > 1) setHistoryRequest({ auctionId: auction.id, before: oldest });
-              }}
             >
               <div className="lc-slide-inner">
                 <h1 className="lc-prize" aria-label={`Prêmio de ${BRL2.format(auction.prize)} em dinheiro`}>
@@ -810,22 +812,46 @@ function LanceCash() {
                   </div>
                 </section>
                 <h2 className="lc-section-title">Todos os lances <span>{upcoming ? '' : NUMBER.format(auction.bidCount)}</span></h2>
-                <ol className="lc-bid-list">
+                <ol
+                  className="lc-bid-list"
+                  aria-label="Lances do mais recente ao mais antigo"
+                  ref={(element) => {
+                    if (element) bidListRefs.current.set(auction.id, element);
+                    else bidListRefs.current.delete(auction.id);
+                  }}
+                  onScroll={(event) => {
+                    if (historyRequest !== null || historyQuery.isFetching || upcoming) return;
+                    const element = event.currentTarget;
+                    if (element.scrollTop + element.clientHeight < element.scrollHeight - 100) return;
+                    const loaded = [
+                      ...(historyExtra[auction.id] ?? []),
+                      ...auction.bids,
+                    ];
+                    const oldest = loaded.length
+                      ? Math.min(...loaded.map((bid) => bid.number))
+                      : 1;
+                    if (oldest > 1) {
+                      setHistoryRequest({ auctionId: auction.id, before: oldest });
+                    }
+                  }}
+                >
                   {upcoming
                     ? <li className="lc-bid-row is-footer">Os lances aparecem aqui quando o leilão começar</li>
-                    : orderedBids.map((bid) => (
-                      <BidRow
-                        bid={bid}
-                        fresh={isIncomingBidVisible && incomingBid?.bidNumber === bid.number}
-                        key={`${auction.id}-${bid.number}`}
-                      />
-                    ))}
-                  {!upcoming && (orderedBids.length >= auction.bidCount || !orderedBids.length) && (
-                    <li className="lc-bid-row is-footer">Início do leilão</li>
-                  )}
-                  {!upcoming && historyBusy && (
-                    <li className="lc-bid-row is-footer">Carregando lances…</li>
-                  )}
+                    : <>
+                      {orderedBids.map((bid) => (
+                        <BidRow
+                          bid={bid}
+                          fresh={isIncomingBidVisible && incomingBid?.bidNumber === bid.number}
+                          key={`${auction.id}-${bid.number}`}
+                        />
+                      ))}
+                      {historyBusy && (
+                        <li className="lc-bid-row is-footer">Carregando lances…</li>
+                      )}
+                      {(orderedBids.length >= auction.bidCount || !orderedBids.length) && (
+                        <li className="lc-bid-row is-footer">Início do leilão</li>
+                      )}
+                    </>}
                 </ol>
               </div>
             </section>
