@@ -303,11 +303,14 @@ function LanceCash() {
       : realtimeConnected ? 'healthy' : 'delayed';
   useHealthCheck();
   const state = stateQuery.data as LanceCashState | undefined;
+  const authenticatedUser = isAuthenticated ? authQuery.data?.user : undefined;
   const hasAccountData =
-    isAuthenticated &&
+    authenticatedUser !== undefined &&
     state !== undefined &&
     state.user !== null &&
     state.user.name.trim().length > 0 &&
+    state.user.email.trim().length > 0 &&
+    state.user.email.toLowerCase() === authenticatedUser.email.toLowerCase() &&
     Number.isFinite(state.balance);
   const auctions = state?.auctions ?? [];
   const currentIndex = Math.max(0, auctions.findIndex((auction) => auction.id === state?.currentAuctionId));
