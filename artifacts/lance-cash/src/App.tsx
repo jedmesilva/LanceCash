@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, Plus, X, Zap } from 'lucide-react';
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Eye, EyeOff, LogIn, Plus, X, Zap } from 'lucide-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -83,6 +83,13 @@ function LanceCash() {
   const [toastText, setToastText] = useState('');
   const [accountView, setAccountView] = useState<'main' | 'prizes' | 'profile'>('main');
   const [accountNotice, setAccountNotice] = useState('');
+  const [authMode, setAuthMode] = useState<'in' | 'up' | 'reset'>('in');
+  const [authName, setAuthName] = useState('');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authErrors, setAuthErrors] = useState<Record<string, string>>({});
+  const [authNotice, setAuthNotice] = useState('');
+  const [authShowPassword, setAuthShowPassword] = useState(false);
   const [profileName, setProfileName] = useState('');
   const [profileEmail, setProfileEmail] = useState('');
   const [passwordCurrent, setPasswordCurrent] = useState('');
@@ -98,6 +105,7 @@ function LanceCash() {
   const slidesRef = useRef<HTMLDivElement>(null);
   const purchaseDialogRef = useRef<HTMLDialogElement>(null);
   const accountDialogRef = useRef<HTMLDialogElement>(null);
+  const authDialogRef = useRef<HTMLDialogElement>(null);
   const scrollFrame = useRef<number | null>(null);
   const serverOffsetRef = useRef(0);
   const initializedAuctionRef = useRef<number | null>(null);
@@ -201,6 +209,44 @@ function LanceCash() {
     setAccountView('main');
     setAccountNotice('');
     accountDialogRef.current?.showModal();
+  };
+  const openAuth = () => {
+    setAuthMode('in');
+    setAuthName('');
+    setAuthEmail('');
+    setAuthPassword('');
+    setAuthErrors({});
+    setAuthNotice('');
+    setAuthShowPassword(false);
+    const showAuth = () => authDialogRef.current?.showModal();
+    if (accountDialogRef.current?.open) {
+      accountDialogRef.current.close();
+      window.requestAnimationFrame(showAuth);
+    } else {
+      showAuth();
+    }
+  };
+  const changeAuthMode = (mode: 'in' | 'up' | 'reset') => {
+    setAuthMode(mode);
+    setAuthErrors({});
+    setAuthNotice('');
+    setAuthPassword('');
+  };
+  const submitAuth = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const email = authEmail.trim();
+    const errors: Record<string, string> = {};
+    if (authMode === 'up' && authName.trim().length < 2) errors.name = 'Informe seu nome.';
+    if (!email) errors.email = 'Informe seu e-mail.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) errors.email = 'Digite um e-mail válido.';
+    if (authMode !== 'reset' && !authPassword) errors.password = 'Informe sua senha.';
+    else if (authMode === 'up' && authPassword.length < 8) errors.password = 'Use pelo menos 8 caracteres.';
+    setAuthErrors(errors);
+    setAuthNotice('');
+    if (Object.keys(errors).length) return;
+    setAuthNotice(authMode === 'reset'
+      ? 'A recuperação por e-mail ainda não está conectada a este protótipo.'
+      : 'A autenticação ainda não está conectada. Você pode continuar usando a conta de demonstração.');
   };
   const selectedPackage = state?.packages.find((item) => item.id === selectedPackageId) ?? state?.packages[0];
   const getDeadlineMs = (auction: LanceCashAuction) => auction.deadlineAt ? Date.parse(auction.deadlineAt) : 0;
@@ -567,6 +613,11 @@ function LanceCash() {
                 <span className="lc-user-copy"><b>Meus prêmios</b><small>{state.prizes.length ? `${state.prizes.length} ${state.prizes.length > 1 ? 'prêmios' : 'prêmio'}` : 'Nenhum prêmio ainda'}</small></span>
                 <ChevronRight size={18} strokeWidth={3} />
               </button>
+              <button className="lc-row-button" type="button" onClick={openAuth} aria-haspopup="dialog" data-testid="button-open-auth">
+                <span className="lc-icon-disc"><LogIn size={20} strokeWidth={2.5} /></span>
+                <span className="lc-user-copy"><b>Entrar ou criar conta</b><small>Veja as opções de acesso</small></span>
+                <ChevronRight size={18} strokeWidth={3} />
+              </button>
               <button className="lc-cta secondary" type="button" onClick={() => { accountDialogRef.current?.close(); showToast('Você saiu da conta (simulado)'); }} data-testid="button-simulated-signout">Sair da conta</button>
             </section>
           )}
@@ -624,6 +675,69 @@ function LanceCash() {
               <button className="lc-cta lc-save" type="submit" disabled={savingProfile || profileMutation.isPending} data-testid="button-save-profile">{savingProfile ? 'Salvando…' : 'Salvar alterações'}</button>
             </form>
           )}
+        </div>
+      </dialog>
+
+      <dialog
+        className="lc-dialog lc-auth-dialog"
+        ref={authDialogRef}
+        aria-labelledby="auth-title"
+        onClick={(event) => { if (event.target === authDialogRef.current) authDialogRef.current?.close(); }}
+      >
+        <div className="lc-dialog-content">
+          <div className="lc-dialog-heading">
+            <div>
+              <h2 id="auth-title">{authMode === 'in' ? 'Entrar' : authMode === 'up' ? 'Criar conta' : 'Recuperar senha'}</h2>
+            </div>
+            <button className="lc-close" type="button" aria-label="Fechar" onClick={() => authDialogRef.current?.close()} data-testid="button-close-auth"><X size={16} strokeWidth={3} /></button>
+          </div>
+          <p className="lc-auth-intro">
+            {authMode === 'reset'
+              ? 'Informe o e-mail associado à conta. A recuperação fica disponível quando o serviço de autenticação estiver conectado.'
+              : 'Entre para dar lances e acompanhar sua conta.'}
+          </p>
+          <form className="lc-auth-form" noValidate onSubmit={submitAuth}>
+            {authMode === 'up' && (
+              <div className="lc-field">
+                <label htmlFor="auth-name">Nome</label>
+                <input id="auth-name" autoComplete="name" placeholder="Seu nome" value={authName} aria-invalid={Boolean(authErrors.name)} aria-describedby="auth-name-error" onChange={(event) => { setAuthName(event.target.value); setAuthErrors((old) => ({ ...old, name: '' })); }} data-testid="input-auth-name" />
+                {authErrors.name && <p id="auth-name-error" className="lc-field-error">{authErrors.name}</p>}
+              </div>
+            )}
+            <div className="lc-field">
+              <label htmlFor="auth-email">E-mail</label>
+              <input id="auth-email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder="nome@email.com" value={authEmail} aria-invalid={Boolean(authErrors.email)} aria-describedby="auth-email-error" onChange={(event) => { setAuthEmail(event.target.value); setAuthErrors((old) => ({ ...old, email: '' })); }} data-testid="input-auth-email" />
+              {authErrors.email && <p id="auth-email-error" className="lc-field-error">{authErrors.email}</p>}
+            </div>
+            {authMode !== 'reset' && (
+              <div className="lc-field">
+                <label htmlFor="auth-password">Senha</label>
+                <div className="lc-auth-password">
+                  <input id="auth-password" type={authShowPassword ? 'text' : 'password'} autoComplete={authMode === 'up' ? 'new-password' : 'current-password'} placeholder={authMode === 'up' ? 'Crie uma senha' : 'Sua senha'} value={authPassword} aria-invalid={Boolean(authErrors.password)} aria-describedby="auth-password-error auth-password-hint" onChange={(event) => { setAuthPassword(event.target.value); setAuthErrors((old) => ({ ...old, password: '' })); }} data-testid="input-auth-password" />
+                  <button className="lc-auth-password-toggle" type="button" aria-label={authShowPassword ? 'Ocultar senha' : 'Mostrar senha'} aria-controls="auth-password" onClick={() => setAuthShowPassword((visible) => !visible)} data-testid="button-toggle-auth-password">
+                    {authShowPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {authErrors.password && <p id="auth-password-error" className="lc-field-error">{authErrors.password}</p>}
+                {authMode === 'up' && <p id="auth-password-hint" className="lc-auth-hint">Use pelo menos 8 caracteres.</p>}
+              </div>
+            )}
+            {authMode === 'in' && <button className="lc-auth-link lc-auth-forgot" type="button" onClick={() => changeAuthMode('reset')} data-testid="button-forgot-password">Esqueci minha senha</button>}
+            {authNotice && <p className="lc-auth-notice" role="status" data-testid="status-auth-notice">{authNotice}</p>}
+            <button className="lc-cta lc-auth-submit" type="submit" data-testid="button-submit-auth">
+              {authMode === 'in' ? 'Entrar' : authMode === 'up' ? 'Criar conta' : 'Enviar link'}
+            </button>
+          </form>
+          <p className="lc-auth-switch">
+            {authMode === 'in' ? 'Não tem conta? ' : authMode === 'up' ? 'Já tem conta? ' : 'Lembrou a senha? '}
+            <button className="lc-auth-link" type="button" onClick={() => changeAuthMode(authMode === 'in' ? 'up' : 'in')} data-testid="button-switch-auth-mode">
+              {authMode === 'in' ? 'Criar conta' : 'Entrar'}
+            </button>
+          </p>
+          <div className="lc-auth-demo">
+            <p>Este protótipo usa uma conta de demonstração; nenhuma senha é armazenada.</p>
+            <button type="button" onClick={() => { authDialogRef.current?.close(); showToast('Você já está usando a conta de demonstração.'); }} data-testid="button-continue-demo">Continuar no modo demonstração</button>
+          </div>
         </div>
       </dialog>
     </main>

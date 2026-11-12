@@ -143,6 +143,21 @@ button:disabled { cursor: default; }
 .lc-package-label { position: absolute; top: -10px; right: 16px; padding: 2px 10px; border-radius: 99px; background: var(--lc-text); color: var(--lc-bg); font: 700 11px var(--lc-body); font-style: normal; }
 .lc-payment-button { margin-top: 20px; }
 .lc-note { margin: 10px 0 0; text-align: center; color: var(--lc-muted); font-size: 13px; }
+.lc-auth-intro { margin: 8px 0 20px; color: var(--lc-muted); }
+.lc-auth-form .lc-field { margin-top: 14px; }
+.lc-auth-password { position: relative; }
+.lc-auth-password input { padding-right: 58px; }
+.lc-auth-password-toggle { position: absolute; top: 4px; right: 6px; display: grid; place-items: center; width: 42px; height: 44px; border-radius: var(--lc-radius-input); color: var(--lc-muted); }
+.lc-auth-password-toggle:hover { color: var(--lc-text); }
+.lc-auth-hint { margin: 6px 0 0; color: var(--lc-muted); font-size: 13px; }
+.lc-auth-link { padding: 4px 0; color: var(--lc-green); font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+.lc-auth-forgot { display: block; margin: 0 0 0 auto; padding: 10px 0 0; font-size: 14px; }
+.lc-auth-notice { margin: 14px 0 0; padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, var(--lc-lime) 28%, transparent); font-size: 14px; font-weight: 600; }
+.lc-auth-submit { margin-top: 20px; }
+.lc-auth-switch { margin: 18px 0 0; text-align: center; color: var(--lc-muted); }
+.lc-auth-demo { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--lc-line); text-align: center; }
+.lc-auth-demo p { margin: 0 0 8px; color: var(--lc-muted); font-size: 13px; }
+.lc-auth-demo button { padding: 4px 0; color: var(--lc-text); font-size: 14px; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
 .lc-account-user { display: flex; align-items: center; gap: 14px; width: 100%; margin-top: 18px; padding: 0 0 18px; border-bottom: 1px solid var(--lc-line); text-align: left; }
 .lc-user-copy { flex: 1; min-width: 0; }
 .lc-user-copy b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 18px var(--lc-display); }
@@ -206,6 +221,10 @@ button:disabled { cursor: default; }
     width: min(600px, calc(100vw - 48px));
   }
 
+  .lc-dialog[aria-labelledby="auth-title"] {
+    width: min(480px, calc(100vw - 48px));
+  }
+
   .lc-dialog[aria-labelledby="account-title"] {
     width: min(700px, calc(100vw - 48px));
   }
@@ -234,6 +253,10 @@ button:disabled { cursor: default; }
 }
 
 @media (min-width: 1024px) {
+  .lc-dialog[aria-labelledby="auth-title"] {
+    width: min(500px, calc(100vw - 64px));
+  }
+
   .lc-dialog[aria-labelledby="purchase-title"] {
     width: min(640px, calc(100vw - 64px));
   }
