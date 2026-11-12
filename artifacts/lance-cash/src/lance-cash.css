@@ -95,10 +95,10 @@ button:disabled { cursor: default; }
 .lc-ring > svg { width: 100%; height: 100%; transform: rotate(-90deg); }
 .lc-ring circle { fill: none; stroke: currentColor; stroke-width: 4; stroke-linecap: round; }
 .lc-ring .ring-bg { opacity: .18; }
-.lc-ring .ring-fill { stroke-dasharray: 100; transition: stroke-dashoffset .25s linear; }
+.lc-ring .ring-fill { stroke-dasharray: 100; transition: stroke-dashoffset 1s linear; }
 .lc-ring b { position: absolute; inset: 0; display: grid; place-items: center; font: 800 22px var(--lc-display); font-variant-numeric: tabular-nums; }
 .lc-ring-check { position: absolute; inset: 0; display: grid; place-items: center; }
-.lc-current.is-low .lc-ring { color: var(--lc-alert); animation: lc-pulse 1s infinite; }
+.lc-ring.is-low { color: var(--lc-alert); animation: lc-pulse 1s infinite; }
 .lc-current-copy { flex: 1; min-width: 0; }
 .lc-kicker, .lc-subline { color: var(--lc-muted); font-size: 13px; font-weight: 600; }
 .lc-kicker-roll { position: relative; height: 1.4em; overflow: hidden; }
@@ -112,8 +112,8 @@ button:disabled { cursor: default; }
 .lc-bid-list { margin: 0; padding: 0; list-style: none; }
 .lc-bid-row { display: flex; align-items: center; gap: 12px; padding: 12px 8px; border-bottom: 1px solid var(--lc-line); }
 .lc-bid-row.is-mine { background: color-mix(in srgb, var(--lc-lime) 28%, transparent); }
-.lc-bid-row.is-new { animation: lc-flash 1.1s ease-out both; }
-.lc-bid-row.is-new.is-mine { animation-name: lc-flash-mine; }
+.lc-bid-row.is-new { animation: lc-flash 1.1s ease-out both, lc-bid-enter .28s cubic-bezier(.2, .8, .2, 1) both; }
+.lc-bid-row.is-new.is-mine { animation-name: lc-flash-mine, lc-bid-enter; }
 .lc-bid-row.is-footer { justify-content: center; border: 0; color: var(--lc-muted); font-size: 13px; }
 .lc-bid-initial { display: grid; flex: none; place-items: center; width: 38px; height: 38px; border-radius: var(--lc-radius-circle); color: #0F1208; font: 800 15px var(--lc-body); font-style: normal; }
 .lc-bid-meta { flex: 1; min-width: 0; }
@@ -233,6 +233,10 @@ button:disabled { cursor: default; }
 @keyframes lc-flash-mine {
   from { background: color-mix(in srgb, var(--lc-lime) 65%, transparent); }
   to { background: color-mix(in srgb, var(--lc-lime) 28%, transparent); }
+}
+@keyframes lc-bid-enter {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 @keyframes lc-up { from { transform: translateY(24px); opacity: 0; } }
 @keyframes lc-shimmer { to { transform: translateX(100%); } }

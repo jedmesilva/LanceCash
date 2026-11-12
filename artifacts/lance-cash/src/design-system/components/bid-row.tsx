@@ -1,5 +1,5 @@
 import type { AuctionBid } from '@workspace/api-client-react';
-import { motion } from 'framer-motion';
+import { memo } from 'react';
 
 const number = new Intl.NumberFormat('pt-BR');
 const colors = [
@@ -10,7 +10,7 @@ const colors = [
   'var(--lc-bid-swatch-5)',
 ];
 
-export function BidRow({ bid, fresh = false }: { bid: AuctionBid; fresh?: boolean }) {
+export const BidRow = memo(function BidRow({ bid, fresh = false }: { bid: AuctionBid; fresh?: boolean }) {
   const isMine = bid.leader === 'Você';
   const colorIndex = [...bid.leader].reduce(
     (total, letter) => total + letter.charCodeAt(0),
@@ -18,17 +18,9 @@ export function BidRow({ bid, fresh = false }: { bid: AuctionBid; fresh?: boolea
   ) % colors.length;
 
   return (
-    <motion.li
+    <li
       className={`lc-bid-row${isMine ? ' is-mine' : ''}${fresh ? ' is-new' : ''}`}
       data-testid={`row-bid-${bid.number}`}
-      layout="position"
-      initial={false}
-      animate={fresh ? { opacity: [0, 1], y: [-14, 0] } : { opacity: 1, y: 0 }}
-      transition={{
-        layout: { duration: 0.28, ease: 'easeOut' },
-        opacity: { duration: 0.24, ease: 'easeOut' },
-        y: { duration: 0.28, ease: 'easeOut' },
-      }}
     >
       <i
         className="lc-bid-initial"
@@ -44,6 +36,6 @@ export function BidRow({ bid, fresh = false }: { bid: AuctionBid; fresh?: boolea
       <time className="lc-bid-time" dateTime={bid.createdAt}>
         {new Date(bid.createdAt).toLocaleTimeString('pt-BR')}
       </time>
-    </motion.li>
+    </li>
   );
-}
+});

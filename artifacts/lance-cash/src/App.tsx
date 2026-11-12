@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { memo, type FormEvent, type MutableRefObject, useEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, Eye, EyeOff, LogIn, Plus, X, Zap } from 'lucide-react';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
@@ -125,6 +125,47 @@ function LoadingView() {
   );
 }
 
+const AuctionCountdown = memo(function AuctionCountdown({
+  status,
+  deadlineAt,
+  serverOffsetRef,
+}: {
+  status: 'live' | 'ended' | 'upcoming';
+  deadlineAt: string | null;
+  serverOffsetRef: MutableRefObject<number>;
+}) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (status !== 'live' || !deadlineAt) return;
+
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [deadlineAt, status]);
+
+  const remainingMs = status === 'live' && deadlineAt
+    ? Math.max(0, Date.parse(deadlineAt) - (now + serverOffsetRef.current))
+    : 0;
+  const seconds = status === 'upcoming' ? 15 : Math.ceil(remainingMs / 1000);
+  const ringProgress = status === 'live' ? Math.min(100, (remainingMs / 15_000) * 100) : 0;
+
+  return (
+    <div className={`lc-ring${status === 'live' && seconds < 5 ? ' is-low' : ''}`}>
+      <svg viewBox="0 0 40 40" aria-hidden="true">
+        <circle className="ring-bg" cx="20" cy="20" r="17" />
+        <circle className="ring-fill" cx="20" cy="20" r="17" pathLength="100" style={{ strokeDashoffset: 100 - ringProgress }} />
+      </svg>
+      {status === 'ended' ? (
+        <span className="lc-ring-check" role="img" aria-label="Leilão encerrado">
+          <Check size={22} strokeWidth={3} />
+        </span>
+      ) : (
+        <b role="timer">{seconds}</b>
+      )}
+    </div>
+  );
+});
+
 function LanceCash() {
   const queryClient = useQueryClient();
   const authQuery = useGetAuthMe({ query: { retry: false, refetchInterval: 60_000 } });
@@ -136,7 +177,6 @@ function LanceCash() {
   const currentIndex = Math.max(0, auctions.findIndex((auction) => auction.id === state?.currentAuctionId));
   const currentAuction = auctions[currentIndex];
   const [visibleIndex, setVisibleIndex] = useState(0);
-  const [clock, setClock] = useState(Date.now());
   const [historyRequest, setHistoryRequest] = useState<{ auctionId: number; before: number } | null>(null);
   const [historyExtra, setHistoryExtra] = useState<Record<number, AuctionBid[]>>({});
   const [selectedPackageId, setSelectedPackageId] = useState('popular');
@@ -191,11 +231,6 @@ function LanceCash() {
   const loginMutation = usePostAuthLogin();
   const registerMutation = usePostAuthRegister();
   const logoutMutation = usePostAuthLogout();
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setClock(Date.now()), 250);
-    return () => window.clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     if (state?.serverTime) serverOffsetRef.current = Date.parse(state.serverTime) - Date.now();
@@ -394,8 +429,6 @@ function LanceCash() {
     }
   };
   const selectedPackage = state?.packages.find((item) => item.id === selectedPackageId) ?? state?.packages[0];
-  const getDeadlineMs = (auction: LanceCashAuction) => auction.deadlineAt ? Date.parse(auction.deadlineAt) : 0;
-
   const placeBid = async () => {
     if (!isAuthenticated) {
       openAuth();
@@ -626,11 +659,6 @@ function LanceCash() {
             .reduce((all, bid) => all.set(bid.number, bid), new Map<number, AuctionBid>())
             .values();
           const orderedBids = [...auctionBids].sort((a, b) => b.number - a.number);
-          const remainingMs = isActive && auction.deadlineAt
-            ? Math.max(0, getDeadlineMs(auction) - (clock + serverOffsetRef.current))
-            : 0;
-          const auctionSeconds = Math.ceil(remainingMs / 1000);
-          const ringProgress = Math.min(100, (remainingMs / 15_000) * 100);
           const isIncomingBidVisible = isVisibleCurrent
             && index === currentIndex
             && incomingBid?.auctionId === auction.id
@@ -660,20 +688,12 @@ function LanceCash() {
                 <h1 className="lc-prize" aria-label={`Prêmio de ${BRL2.format(auction.prize)} em dinheiro`}>
                   <small>R$</small>{prizeFormatted.slice(0, -3)}<small className="decimal">{prizeFormatted.slice(-3)}</small>
                 </h1>
-                <section className={`lc-current${ended ? ' is-ended' : mine && !upcoming ? ' is-mine' : ''}${isActive && auctionSeconds < 5 ? ' is-low' : ''}${isIncomingBidVisible ? ' is-new-bid' : ''}`} aria-label="Lance atual" data-testid={`status-auction-${auction.id}`}>
-                  <div className="lc-ring">
-                    <svg viewBox="0 0 40 40" aria-hidden="true">
-                      <circle className="ring-bg" cx="20" cy="20" r="17" />
-                      <circle className="ring-fill" cx="20" cy="20" r="17" pathLength="100" style={{ strokeDashoffset: ended ? 100 : isActive ? 100 - ringProgress : 0 }} />
-                    </svg>
-                    {ended ? (
-                      <span className="lc-ring-check" role="img" aria-label="Leilão encerrado">
-                        <Check size={22} strokeWidth={3} />
-                      </span>
-                    ) : (
-                      <b role="timer">{upcoming ? 15 : auctionSeconds}</b>
-                    )}
-                  </div>
+                <section className={`lc-current${ended ? ' is-ended' : ''}${mine && !upcoming ? ' is-mine' : ''}${isIncomingBidVisible ? ' is-new-bid' : ''}`} aria-label="Lance atual" data-testid={`status-auction-${auction.id}`}>
+                  <AuctionCountdown
+                    status={auction.status}
+                    deadlineAt={auction.deadlineAt}
+                    serverOffsetRef={serverOffsetRef}
+                  />
                   <div className="lc-current-copy">
                     <div className="lc-kicker lc-kicker-roll">
                       <AnimatePresence initial={false} mode="wait">
