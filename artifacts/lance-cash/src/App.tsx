@@ -35,6 +35,8 @@ import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { BidRow, LogoMark, TrophyMark } from '@/design-system';
 import './lance-cash.css';
 
+type CountdownConnectionState = 'healthy' | 'delayed' | 'disconnected' | 'sync-error';
+
 const queryClient = new QueryClient();
 const BRL0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 const BRL2 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -135,6 +137,7 @@ const AuctionCountdown = memo(function AuctionCountdown({
   serverOffsetRef,
   isVerifying,
   isConnectionLost,
+  connectionState,
   onDeadline,
 }: {
   auctionId: number;
@@ -143,6 +146,7 @@ const AuctionCountdown = memo(function AuctionCountdown({
   serverOffsetRef: MutableRefObject<number>;
   isVerifying: boolean;
   isConnectionLost: boolean;
+  connectionState: CountdownConnectionState;
   onDeadline: (auctionId: number, deadlineAt: string) => void;
 }) {
   const [now, setNow] = useState(() => Date.now());
@@ -163,13 +167,14 @@ const AuctionCountdown = memo(function AuctionCountdown({
   const ringProgress = status === 'live' ? Math.min(100, (remainingMs / 15_000) * 100) : 0;
   const deadlineReached = status === 'live' && Boolean(deadlineAt) && remainingMs === 0;
   const showVerification = isVerifying || deadlineReached;
+  const isLow = status === 'live' && seconds < 5 && !showVerification && connectionState === 'healthy';
 
   useEffect(() => {
     if (deadlineReached && deadlineAt) onDeadline(auctionId, deadlineAt);
   }, [auctionId, deadlineAt, deadlineReached, onDeadline]);
 
   return (
-    <div className={`lc-ring${status === 'live' && seconds < 5 && !showVerification ? ' is-low' : ''}${showVerification ? ' is-verifying' : ''}`}>
+    <div className={`lc-ring${isLow ? ' is-low' : ''}${showVerification ? ' is-verifying' : ''}${status === 'live' && connectionState !== 'healthy' ? ` is-${connectionState}` : ''}`}>
       <svg viewBox="0 0 40 40" aria-hidden="true">
         <circle className="ring-bg" cx="20" cy="20" r="17" />
         <circle className="ring-fill" cx="20" cy="20" r="17" pathLength="100" style={{ strokeDashoffset: 100 - ringProgress }} />
@@ -292,6 +297,9 @@ function LanceCash() {
   const hasStateSyncError = stateQuery.isError && Boolean(stateQuery.data);
   const serverConnectionLost = !browserOnline || !realtimeConnected && hasStateSyncError;
   const stateSyncFailed = browserOnline && realtimeConnected && hasStateSyncError;
+  const countdownConnectionState: CountdownConnectionState = serverConnectionLost ? 'disconnected'
+    : stateSyncFailed ? 'sync-error'
+      : realtimeConnected ? 'healthy' : 'delayed';
   useHealthCheck();
   const state = stateQuery.data as LanceCashState | undefined;
   const auctions = state?.auctions ?? [];
@@ -904,6 +912,13 @@ function LanceCash() {
             && incomingBid.bidNumber === auction.bidCount;
           const isVerifyingAuction = verificationTarget?.auctionId === auction.id
             && verificationTarget.deadlineAt === auction.deadlineAt;
+          const isCurrentLiveAuction = auction.id === state.currentAuctionId && auction.status === 'live';
+          const connectionNotice = isCurrentLiveAuction
+            ? serverConnectionLost ? 'Sem conexão — cronômetro pausado'
+              : stateSyncFailed ? 'Falha na sincronização — tempo real ativo'
+                : !realtimeConnected ? 'Atualização atrasada — sincronizando'
+                  : null
+            : null;
           const leaderText = upcoming ? 'Em breve'
             : isVerifyingAuction ? 'Verificando resultado…'
               : mine ? ended ? 'Você ganhou!' : 'Você' : auction.leader;
@@ -926,6 +941,7 @@ function LanceCash() {
                     serverOffsetRef={serverOffsetRef}
                     isVerifying={isVerifyingAuction}
                     isConnectionLost={serverConnectionLost}
+                    connectionState={isCurrentLiveAuction ? countdownConnectionState : 'healthy'}
                     onDeadline={requestDeadlineVerification}
                   />
                   <div className="lc-current-copy">
@@ -957,11 +973,12 @@ function LanceCash() {
                         </motion.span>
                       </AnimatePresence>
                     </div>
-                    <div className="lc-subline">
-                      {isVerifyingAuction ? 'O servidor ainda está confirmando o resultado'
-                        : upcoming ? 'Começa quando o leilão anterior encerrar' : ended
-                        ? mine ? `Você levou os ${BRL2.format(auction.prize)}` : `Levou os ${BRL2.format(auction.prize)}`
-                        : mine ? 'Ao zerar, você leva o prêmio' : 'Ao zerar, quem deu o último lance leva o prêmio'}
+                    <div className={`lc-subline${connectionNotice ? ` is-sync-notice is-${countdownConnectionState}` : ''}`} role={connectionNotice ? 'status' : undefined} aria-live={connectionNotice ? 'polite' : undefined}>
+                      {serverConnectionLost && isVerifyingAuction ? 'Sem conexão — resultado ainda não confirmado'
+                        : isVerifyingAuction ? 'O servidor ainda está confirmando o resultado'
+                        : connectionNotice ?? (upcoming ? 'Começa quando o leilão anterior encerrar' : ended
+                          ? mine ? `Você levou os ${BRL2.format(auction.prize)}` : `Levou os ${BRL2.format(auction.prize)}`
+                          : mine ? 'Ao zerar, você leva o prêmio' : 'Ao zerar, quem deu o último lance leva o prêmio')}
                     </div>
                   </div>
                 </section>

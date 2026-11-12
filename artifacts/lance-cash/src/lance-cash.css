@@ -112,8 +112,29 @@ button:disabled { cursor: default; }
 .lc-ring b { position: absolute; inset: 0; display: grid; place-items: center; font: 800 22px var(--lc-display); font-variant-numeric: tabular-nums; }
 .lc-ring-check { position: absolute; inset: 0; display: grid; place-items: center; }
 .lc-ring.is-low { color: var(--lc-alert); animation: lc-pulse 1s infinite; }
+.lc-ring.is-delayed, .lc-ring.is-sync-error { color: #946000; }
+.lc-ring.is-disconnected { color: var(--lc-alert); }
+.lc-ring.is-delayed::after, .lc-ring.is-sync-error::after {
+  position: absolute;
+  inset: -5px;
+  border: 2px solid color-mix(in srgb, currentColor 32%, transparent);
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+  animation: lc-sync-ring-pulse 1.8s ease-in-out infinite;
+}
+@keyframes lc-sync-ring-pulse {
+  0%, 100% { transform: scale(.96); opacity: .35; }
+  50% { transform: scale(1.08); opacity: .95; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lc-ring.is-delayed::after, .lc-ring.is-sync-error::after { animation: none; }
+}
 .lc-current-copy { flex: 1; min-width: 0; }
 .lc-kicker, .lc-subline { color: var(--lc-muted); font-size: 13px; font-weight: 600; }
+.lc-current .lc-subline.is-sync-notice.is-delayed,
+.lc-current .lc-subline.is-sync-notice.is-sync-error { color: #946000; }
+.lc-current .lc-subline.is-sync-notice.is-disconnected { color: var(--lc-alert); }
 .lc-kicker-roll { position: relative; height: 1.4em; overflow: hidden; }
 .lc-kicker-value { position: absolute; inset: 0; display: block; }
 .lc-current.is-mine .lc-kicker, .lc-current.is-mine .lc-subline, .lc-current.is-ended .lc-kicker, .lc-current.is-ended .lc-subline { color: inherit; opacity: .78; }
