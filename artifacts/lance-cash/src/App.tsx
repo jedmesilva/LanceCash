@@ -196,17 +196,31 @@ function LanceCash() {
   const queryClient = useQueryClient();
   const authQuery = useGetAuthMe({ query: { retry: false, refetchInterval: 60_000 } });
   const isAuthenticated = Boolean(authQuery.data?.user) && apiErrorStatus(authQuery.error) !== 401;
+  const authenticatedUser = isAuthenticated ? authQuery.data?.user : undefined;
+  const authenticatedUserEmail = authenticatedUser?.email.toLowerCase();
   const serverOffsetRef = useRef(0);
+  const accountStateRefreshRef = useRef(false);
+  const refreshStateAfterAccountRef = useRef(false);
   const handleAuctionUpdate = useCallback((event: AuctionRealtimeUpdate) => {
     serverOffsetRef.current = Date.parse(event.serverTime) - Date.now();
 
     let shouldRefreshState = false;
     const queryKey = getGetLanceCashStateQueryKey();
-    void queryClient.cancelQueries({ queryKey });
+    if (!accountStateRefreshRef.current) {
+      void queryClient.cancelQueries({ queryKey, exact: true });
+    }
     queryClient.setQueryData<LanceCashState>(queryKey, (current) => {
       if (!current) {
         shouldRefreshState = true;
         return current;
+      }
+
+      if (
+        authenticatedUserEmail &&
+        !accountStateRefreshRef.current &&
+        current.user?.email.toLowerCase() !== authenticatedUserEmail
+      ) {
+        shouldRefreshState = true;
       }
 
       const existing = current.auctions.find((auction) => auction.id === event.auctionId);
@@ -258,9 +272,13 @@ function LanceCash() {
     });
 
     if (shouldRefreshState) {
-      void queryClient.invalidateQueries({ queryKey });
+      if (accountStateRefreshRef.current) {
+        refreshStateAfterAccountRef.current = true;
+      } else {
+        void queryClient.invalidateQueries({ queryKey });
+      }
     }
-  }, [isAuthenticated, queryClient]);
+  }, [authenticatedUserEmail, isAuthenticated, queryClient]);
   const realtimeConnected = useAuctionRealtime(handleAuctionUpdate);
   const [browserOnline, setBrowserOnline] = useState(() => navigator.onLine);
   useEffect(() => {
@@ -284,7 +302,11 @@ function LanceCash() {
     const target = { auctionId, deadlineAt };
     verificationTargetRef.current = target;
     setVerificationTarget(target);
-    void queryClient.invalidateQueries({ queryKey: getGetLanceCashStateQueryKey() });
+    if (accountStateRefreshRef.current) {
+      refreshStateAfterAccountRef.current = true;
+    } else {
+      void queryClient.invalidateQueries({ queryKey: getGetLanceCashStateQueryKey() });
+    }
   }, [queryClient]);
   const stateQuery = useGetLanceCashState({
     query: {
@@ -303,7 +325,6 @@ function LanceCash() {
       : realtimeConnected ? 'healthy' : 'delayed';
   useHealthCheck();
   const state = stateQuery.data as LanceCashState | undefined;
-  const authenticatedUser = isAuthenticated ? authQuery.data?.user : undefined;
   const hasAccountData =
     authenticatedUser !== undefined &&
     state !== undefined &&
@@ -408,6 +429,10 @@ function LanceCash() {
       hasConnectedRealtimeRef.current = true;
       return;
     }
+    if (accountStateRefreshRef.current) {
+      refreshStateAfterAccountRef.current = true;
+      return;
+    }
     const queryKey = getGetLanceCashStateQueryKey();
     void queryClient.invalidateQueries({ queryKey });
   }, [queryClient, realtimeConnected]);
@@ -455,7 +480,11 @@ function LanceCash() {
     if (apiErrorStatus(authQuery.error) !== 401) return;
     accountDialogRef.current?.close();
     queryClient.removeQueries({ queryKey: ['/api/lance-cash/bids/history'] });
-    void queryClient.invalidateQueries({ queryKey: getGetLanceCashStateQueryKey() });
+    if (accountStateRefreshRef.current) {
+      refreshStateAfterAccountRef.current = true;
+    } else {
+      void queryClient.invalidateQueries({ queryKey: getGetLanceCashStateQueryKey() });
+    }
   }, [authQuery.error, queryClient]);
 
   useEffect(() => {
@@ -641,11 +670,37 @@ function LanceCash() {
         : await loginMutation.mutateAsync({
           data: { email, password: authPassword },
         });
+      await queryClient.cancelQueries({ queryKey: getGetAuthMeQueryKey(), exact: true });
       queryClient.setQueryData(getGetAuthMeQueryKey(), result);
       queryClient.removeQueries({ queryKey: ['/api/lance-cash/bids/history'] });
-      await queryClient.invalidateQueries({ queryKey: getGetLanceCashStateQueryKey() });
+      const stateQueryKey = getGetLanceCashStateQueryKey();
+      accountStateRefreshRef.current = true;
+      refreshStateAfterAccountRef.current = false;
+      let accountDataMatches = false;
+      let refreshStateAfterAccount = false;
+      try {
+        await queryClient.cancelQueries({ queryKey: stateQueryKey, exact: true });
+        const refreshedState = await stateQuery.refetch();
+        accountDataMatches =
+          !refreshedState.isError &&
+          refreshedState.data?.user?.email.toLowerCase() === result.user.email.toLowerCase();
+      } catch {
+        accountDataMatches = false;
+      } finally {
+        refreshStateAfterAccount = refreshStateAfterAccountRef.current;
+        refreshStateAfterAccountRef.current = false;
+        accountStateRefreshRef.current = false;
+      }
       authDialogRef.current?.close();
-      showToast(authMode === 'up' ? 'Sua conta foi criada.' : 'Você entrou na sua conta.');
+      if (accountDataMatches) {
+        showToast(authMode === 'up' ? 'Sua conta foi criada.' : 'Você entrou na sua conta.');
+        if (refreshStateAfterAccount) {
+          void queryClient.invalidateQueries({ queryKey: stateQueryKey, exact: true });
+        }
+      } else {
+        void queryClient.invalidateQueries({ queryKey: stateQueryKey, exact: true });
+        showToast('Você entrou, mas não foi possível carregar seu saldo agora.');
+      }
     } catch (error) {
       setAuthNotice(apiErrorMessage(error, 'Não foi possível autenticar sua conta.'));
     }
@@ -862,7 +917,7 @@ function LanceCash() {
             <>
               <button className="lc-balance" type="button" onClick={openPurchase} aria-label={`Você tem ${state.balance} ${state.balance === 1 ? 'lance' : 'lances'}. Comprar mais`} data-testid="button-buy-bids">
                 <Zap size={16} fill="currentColor" aria-hidden="true" />
-                <span data-testid="text-balance">{NUMBER.format(state.balance)} {state.balance === 1 ? 'lance' : 'lances'}</span>
+                <span data-testid="text-balance">{NUMBER.format(state.balance)}<span className="lc-balance-unit"> {state.balance === 1 ? 'lance' : 'lances'}</span></span>
                 <span className="lc-plus"><Plus size={16} strokeWidth={3} /></span>
               </button>
               <button className="lc-avatar" type="button" onClick={openAccount} aria-label="Abrir minha conta" aria-haspopup="dialog" data-testid="button-open-account">
