@@ -94,6 +94,16 @@ router.patch(
   "/lance-cash/profile",
   requireAuth,
   async (req, res): Promise<void> => {
+    if (
+      typeof req.body === "object" &&
+      req.body !== null &&
+      !Array.isArray(req.body) &&
+      "email" in req.body
+    ) {
+      res.status(400).json({ error: "O e-mail não pode ser alterado." });
+      return;
+    }
+
     const parsed = UpdateLanceCashProfileBody.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: "Dados da conta inválidos." });

@@ -317,15 +317,12 @@ components:
       required: [packageId]
     ProfileUpdateInput:
       type: object
+      additionalProperties: false
       properties:
         name:
           type: string
           minLength: 1
           maxLength: 120
-        email:
-          type: string
-          format: email
-          maxLength: 320
         currentPassword:
           type: string
           maxLength: 200
@@ -336,7 +333,7 @@ components:
         confirmPassword:
           type: string
           maxLength: 200
-      required: [name, email]
+      required: [name]
     AuctionBid:
       type: object
       properties:

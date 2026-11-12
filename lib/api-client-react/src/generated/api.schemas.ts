@@ -71,8 +71,6 @@ export interface ProfileUpdateInput {
      * @maxLength 120
      */
   name: string;
-  /** @maxLength 320 */
-  email: string;
   /** @maxLength 200 */
   currentPassword?: string;
   /**

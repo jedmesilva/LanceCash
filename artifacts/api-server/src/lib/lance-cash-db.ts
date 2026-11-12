@@ -380,15 +380,6 @@ function toIso(value: Date | null): string | null {
   return value?.toISOString() ?? null;
 }
 
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "23505"
-  );
-}
-
 export async function readState(userId: string) {
   return db.transaction(async (tx) => {
     const currentAuction = await getCurrentAuction(tx);
@@ -781,7 +772,6 @@ export async function purchasePackage(
 
 export async function updateProfile(userId: string, input: {
   name: string;
-  email: string;
   currentPassword?: string;
   newPassword?: string;
   confirmPassword?: string;
@@ -824,34 +814,16 @@ export async function updateProfile(userId: string, input: {
     }
   }
 
-  const email = input.email.trim().toLowerCase();
-  const [emailOwner] = await db
-    .select({ id: usersTable.id })
-    .from(usersTable)
-    .where(eq(usersTable.email, email))
-    .limit(1);
-  if (emailOwner && emailOwner.id !== userId) {
-    return { error: "Este e-mail já está em uso." } as const;
-  }
-
-  try {
-    await db
-      .update(usersTable)
-      .set({
-        name: input.name.trim(),
-        email,
-        ...(changingPassword
-          ? { passwordHash: await hashPassword(input.newPassword ?? "") }
-          : {}),
-        updatedAt: new Date(),
-      })
-      .where(eq(usersTable.id, userId));
-  } catch (error) {
-    if (isUniqueViolation(error)) {
-      return { error: "Este e-mail já está em uso." } as const;
-    }
-    throw error;
-  }
+  await db
+    .update(usersTable)
+    .set({
+      name: input.name.trim(),
+      ...(changingPassword
+        ? { passwordHash: await hashPassword(input.newPassword ?? "") }
+        : {}),
+      updatedAt: new Date(),
+    })
+    .where(eq(usersTable.id, userId));
 
   return {
     state: await readState(userId),

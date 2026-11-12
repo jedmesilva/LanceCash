@@ -365,7 +365,6 @@ function LanceCash() {
   const [authNotice, setAuthNotice] = useState('');
   const [authShowPassword, setAuthShowPassword] = useState(false);
   const [profileName, setProfileName] = useState('');
-  const [profileEmail, setProfileEmail] = useState('');
   const [passwordCurrent, setPasswordCurrent] = useState('');
   const [passwordNew, setPasswordNew] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
@@ -795,7 +794,6 @@ function LanceCash() {
   const openProfile = () => {
     if (!state?.user) return;
     setProfileName(state.user.name);
-    setProfileEmail(state.user.email);
     setPasswordCurrent('');
     setPasswordNew('');
     setPasswordConfirm('');
@@ -807,11 +805,9 @@ function LanceCash() {
   const saveProfile = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const name = profileName.trim();
-    const email = profileEmail.trim();
     const changingPassword = Boolean(passwordCurrent || passwordNew || passwordConfirm);
     const errors: Record<string, string> = {};
     if (!name) errors.name = 'Informe seu nome.';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Informe um e-mail válido.';
     if (changingPassword && !passwordCurrent) errors.current = 'Informe a senha atual.';
     if (changingPassword && passwordNew.length < 8) errors.new = 'A nova senha precisa ter ao menos 8 caracteres.';
     if (changingPassword && passwordNew === passwordCurrent && passwordNew.length >= 8) errors.new = 'A nova senha deve ser diferente da atual.';
@@ -824,7 +820,6 @@ function LanceCash() {
     }
     const update: ProfileUpdateInput = {
       name,
-      email,
       ...(changingPassword ? {
         currentPassword: passwordCurrent,
         newPassword: passwordNew,
@@ -1205,8 +1200,8 @@ function LanceCash() {
               </div>
               <div className="lc-field">
                 <label htmlFor="profile-email">E-mail</label>
-                <input id="profile-email" type="email" autoComplete="email" inputMode="email" value={profileEmail} aria-invalid={Boolean(profileErrors.email)} aria-describedby="profile-email-error" onChange={(event) => { setProfileEmail(event.target.value); setProfileErrors((old) => ({ ...old, email: '' })); }} data-testid="input-profile-email" />
-                {profileErrors.email && <p id="profile-email-error" className="lc-field-error">{profileErrors.email}</p>}
+                <input id="profile-email" type="email" value={state?.user?.email ?? ''} readOnly aria-readonly="true" aria-describedby="profile-email-hint" data-testid="input-profile-email" />
+                <p id="profile-email-hint" className="lc-note" style={{ textAlign: 'left', marginTop: 4 }}>O e-mail não pode ser alterado.</p>
               </div>
               <h3 className="lc-form-title">Alterar senha</h3>
               <p className="lc-note" style={{ textAlign: 'left', marginTop: 4 }}>Deixe em branco para manter a senha atual.</p>
