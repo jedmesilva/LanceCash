@@ -757,7 +757,7 @@ function LanceCash() {
             </div>
             <button className="lc-close" type="button" aria-label="Fechar" onClick={() => authDialogRef.current?.close()} data-testid="button-close-auth"><X size={16} strokeWidth={3} /></button>
           </div>
-          <p className="lc-auth-intro">Entre ou crie sua conta para dar lances e acompanhar seus prêmios.</p>
+          <p className="lc-auth-intro">Entre ou crie sua conta para dar lances e disputar os prêmios.</p>
           <form className="lc-auth-form" noValidate onSubmit={submitAuth}>
             {authMode === 'up' && (
               <div className="lc-field">
