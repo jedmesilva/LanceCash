@@ -1,4 +1,4 @@
-import { memo, type FormEvent, type MutableRefObject, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, type FormEvent, type MutableRefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, Eye, EyeOff, LogIn, Plus, X, Zap } from 'lucide-react';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
@@ -316,7 +316,7 @@ function LanceCash() {
     if (state?.serverTime) serverOffsetRef.current = Date.parse(state.serverTime) - Date.now();
   }, [state?.serverTime]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!state) return;
 
     const previousCounts = lastBidCountByAuctionRef.current;
@@ -401,18 +401,34 @@ function LanceCash() {
     setHistoryRequest(null);
   }, [historyQuery.data, historyRequest]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!incomingBid || visibleAuction?.id !== incomingBid.auctionId) return;
     const element = bidListRefs.current.get(incomingBid.auctionId);
     if (!element) return;
+    const newRow = element.querySelector<HTMLElement>(`[data-bid-number="${incomingBid.bidNumber}"]`);
+    if (!newRow) return;
 
-    const frame = window.requestAnimationFrame(() => {
-      element.scrollTo({
-        top: 0,
-        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-      });
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const rowShift = newRow.offsetHeight;
+    if (rowShift <= 0) return;
+    element.scrollTop = 0;
+
+    const rows = Array.from(element.querySelectorAll<HTMLElement>('.lc-bid-row'));
+    rows.forEach((row) => {
+      row.style.transition = 'none';
+      row.style.transform = `translateY(-${rowShift}px)`;
     });
-    return () => window.cancelAnimationFrame(frame);
+    if (!reducedMotion) newRow.style.opacity = '0';
+    void element.offsetHeight;
+
+    const transition = reducedMotion
+      ? 'none'
+      : 'transform .45s cubic-bezier(.2, .8, .2, 1), opacity .45s ease';
+    rows.forEach((row) => {
+      row.style.transition = transition;
+      row.style.transform = 'translateY(0)';
+    });
+    if (!reducedMotion) newRow.style.opacity = '1';
   }, [incomingBid, visibleAuction?.id]);
 
   const patchState = (next: LanceCashState) => {
@@ -841,7 +857,6 @@ function LanceCash() {
                       {orderedBids.map((bid) => (
                         <BidRow
                           bid={bid}
-                          fresh={isIncomingBidVisible && incomingBid?.bidNumber === bid.number}
                           key={`${auction.id}-${bid.number}`}
                         />
                       ))}
