@@ -250,6 +250,7 @@ function LanceCash() {
   const [visibleIndex, setVisibleIndex] = useState(0);
   const [historyRequest, setHistoryRequest] = useState<{ auctionId: number; before: number } | null>(null);
   const [historyExtra, setHistoryExtra] = useState<Record<number, AuctionBid[]>>({});
+  const [historyHasMoreByAuction, setHistoryHasMoreByAuction] = useState<Record<number, boolean>>({});
   const [selectedPackageId, setSelectedPackageId] = useState('popular');
   const [toastText, setToastText] = useState('');
   const [incomingBid, setIncomingBid] = useState<{ auctionId: number; bidNumber: number } | null>(null);
@@ -275,6 +276,7 @@ function LanceCash() {
   const [offsetScroll, setOffsetScroll] = useState<number | null>(null);
   const slidesRef = useRef<HTMLDivElement>(null);
   const bidListRefs = useRef(new Map<number, HTMLOListElement>());
+  const historySentinelRefs = useRef(new Map<number, HTMLLIElement>());
   const purchaseDialogRef = useRef<HTMLDialogElement>(null);
   const accountDialogRef = useRef<HTMLDialogElement>(null);
   const authDialogRef = useRef<HTMLDialogElement>(null);
@@ -296,6 +298,22 @@ function LanceCash() {
       enabled: historyRequest !== null,
     },
   });
+  const historyBusy = historyRequest !== null && historyQuery.isFetching;
+  const requestOlderBids = useCallback((auction: LanceCashAuction) => {
+    if (auction.status === 'upcoming' || historyRequest !== null || historyQuery.isFetching) return;
+
+    const loaded = [
+      ...(historyExtra[auction.id] ?? []),
+      ...auction.bids,
+    ];
+    const oldest = loaded.length
+      ? Math.min(...loaded.map((bid) => bid.number))
+      : 1;
+    const hasMore = historyHasMoreByAuction[auction.id] ?? auction.historyHasMore;
+    if (hasMore && oldest > 1) {
+      setHistoryRequest({ auctionId: auction.id, before: oldest });
+    }
+  }, [historyExtra, historyHasMoreByAuction, historyQuery.isFetching, historyRequest]);
   const bidMutation = usePlaceLanceCashBid();
   const packageMutation = usePurchaseLancePackage();
   const profileMutation = useUpdateLanceCashProfile();
@@ -362,9 +380,31 @@ function LanceCash() {
 
   useEffect(() => {
     setHistoryExtra({});
+    setHistoryHasMoreByAuction({});
     setHistoryRequest(null);
     queryClient.removeQueries({ queryKey: ['/api/lance-cash/bids/history'] });
   }, [isAuthenticated ? authQuery.data?.user.id : null, isAuthenticated, queryClient]);
+
+  useEffect(() => {
+    if (!visibleAuction || visibleAuction.status === 'upcoming' || typeof IntersectionObserver === 'undefined') return;
+    const sentinel = historySentinelRefs.current.get(visibleAuction.id);
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        requestOlderBids(visibleAuction);
+      }
+    }, { root: null, rootMargin: '160px 0px' });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [
+    visibleAuction?.id,
+    visibleAuction?.status,
+    visibleAuction?.bidCount,
+    visibleAuction?.bids,
+    visibleAuction?.historyHasMore,
+    requestOlderBids,
+  ]);
 
   useEffect(() => {
     if (!state) return;
@@ -395,6 +435,10 @@ function LanceCash() {
   useEffect(() => {
     if (historyRequest === null || !historyQuery.data) return;
     const received = historyQuery.data.bids ?? [];
+    setHistoryHasMoreByAuction((existing) => ({
+      ...existing,
+      [historyRequest.auctionId]: historyQuery.data.hasMore,
+    }));
     setHistoryExtra((existing) => {
       const already = new Set(existing[historyRequest.auctionId]?.map((bid) => bid.number) ?? []);
       const unique = received.filter((bid) => !already.has(bid.number));
@@ -413,8 +457,6 @@ function LanceCash() {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const rowShift = newRow.offsetHeight;
     if (rowShift <= 0) return;
-    element.scrollTop = 0;
-
     const rows = Array.from(element.querySelectorAll<HTMLElement>('.lc-bid-row'));
     rows.forEach((row) => {
       row.style.transition = 'none';
@@ -709,8 +751,6 @@ function LanceCash() {
   const currentIsEnded = currentAuction?.status === 'ended';
   const isVisibleCurrent = visibleIndex === currentIndex;
   const buttonDisabled = bidMutation.isPending || isAuthenticated && isVisibleCurrent && currentAuction?.status === 'live' && currentLeaderIsUser;
-  const historyBusy = historyRequest !== null && historyQuery.isFetching;
-
   return (
     <main className="lc-app">
       <header className="lc-header">
@@ -837,21 +877,6 @@ function LanceCash() {
                     if (element) bidListRefs.current.set(auction.id, element);
                     else bidListRefs.current.delete(auction.id);
                   }}
-                  onScroll={(event) => {
-                    if (historyRequest !== null || historyQuery.isFetching || upcoming) return;
-                    const element = event.currentTarget;
-                    if (element.scrollTop + element.clientHeight < element.scrollHeight - 100) return;
-                    const loaded = [
-                      ...(historyExtra[auction.id] ?? []),
-                      ...auction.bids,
-                    ];
-                    const oldest = loaded.length
-                      ? Math.min(...loaded.map((bid) => bid.number))
-                      : 1;
-                    if (oldest > 1) {
-                      setHistoryRequest({ auctionId: auction.id, before: oldest });
-                    }
-                  }}
                 >
                   {upcoming
                     ? <li className="lc-bid-row is-footer">Os lances aparecem aqui quando o leilão começar</li>
@@ -869,6 +894,14 @@ function LanceCash() {
                       {(orderedBids.length >= auction.bidCount || !orderedBids.length) && (
                         <li className="lc-bid-row is-footer">Início do leilão</li>
                       )}
+                      <li
+                        className="lc-history-sentinel"
+                        ref={(element) => {
+                          if (element) historySentinelRefs.current.set(auction.id, element);
+                          else historySentinelRefs.current.delete(auction.id);
+                        }}
+                        aria-hidden="true"
+                      />
                     </>}
                 </ol>
               </div>

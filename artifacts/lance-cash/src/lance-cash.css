@@ -1,12 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Inter:wght@500;600;700;800&display=swap');
 @import './design-system/tokens.css';
 
-html, body, #root { width: 100%; height: 100%; }
-html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+html { width: 100%; min-height: 100%; scroll-padding-top: env(safe-area-inset-top, 0px); }
 body {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
   margin: 0;
   padding: env(safe-area-inset-top, 0px) 0 0;
   background: var(--lc-bg);
@@ -14,6 +15,7 @@ body {
   font: 500 15px/1.4 var(--lc-body);
   -webkit-font-smoothing: antialiased;
 }
+#root { flex: 1 0 auto; width: 100%; min-height: 100vh; }
 body::before {
   content: "";
   position: fixed;
@@ -33,8 +35,8 @@ button:disabled { cursor: default; }
   display: flex;
   flex-direction: column;
   width: 100%;
-  min-height: 0;
-  height: 100%;
+  min-height: 100dvh;
+  height: auto;
   background: var(--lc-bg);
 }
 .lc-header {
@@ -81,10 +83,10 @@ button:disabled { cursor: default; }
 .lc-dots i { width: 6px; height: 6px; border-radius: var(--lc-radius-circle); background: var(--lc-line); }
 .lc-dots i.live { background: var(--lc-lime); box-shadow: inset 0 0 0 1.5px var(--lc-text); }
 .lc-dots i.selected { width: 18px; border-radius: var(--lc-radius-pill); background: var(--lc-text); }
-.lc-slides { flex: 1; display: flex; width: 100%; min-height: 0; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
+.lc-slides { flex: none; display: flex; width: 100%; min-height: 0; overflow-x: auto; overflow-y: clip; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
 .lc-slides::-webkit-scrollbar { display: none; }
-.lc-slide { display: flex; flex: 0 0 100%; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; scroll-snap-align: center; scroll-snap-stop: always; touch-action: pan-x pan-y; }
-.lc-slide-inner { display: flex; flex: 1; flex-direction: column; width: 100%; min-height: 0; max-width: 480px; margin: 0 auto; padding: 0 20px 24px; }
+.lc-slide { display: flex; flex: 0 0 100%; flex-direction: column; min-width: 0; min-height: 0; scroll-snap-align: center; scroll-snap-stop: always; touch-action: pan-x pan-y; }
+.lc-slide-inner { display: flex; flex: none; flex-direction: column; width: 100%; min-height: 0; max-width: 480px; margin: 0 auto; padding: 0 20px 24px; }
 .lc-prize { margin: 22px 0 24px; text-align: center; white-space: nowrap; font: 800 clamp(52px, 19vw, 96px)/1 var(--lc-display); letter-spacing: -.045em; font-variant-numeric: tabular-nums; }
 .lc-prize, .lc-current, .lc-section-title { flex: none; }
 .lc-prize small { margin-right: .14em; font-size: .38em; letter-spacing: -.02em; vertical-align: .55em; }
@@ -110,8 +112,9 @@ button:disabled { cursor: default; }
 .lc-leader-value { position: absolute; inset: 0; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lc-section-title { display: flex; align-items: baseline; justify-content: space-between; margin: 30px 0 6px; font: 800 18px var(--lc-display); letter-spacing: -.02em; }
 .lc-section-title span { color: var(--lc-muted); font: 600 14px var(--lc-body); font-variant-numeric: tabular-nums; }
-.lc-bid-list { flex: 1; min-height: 0; margin: 0; padding: 0; overflow-y: auto; overflow-anchor: none; overscroll-behavior-y: contain; scrollbar-gutter: stable; list-style: none; }
+.lc-bid-list { flex: none; min-height: auto; margin: 0; padding: 0; list-style: none; }
 .lc-bid-row { display: flex; align-items: center; gap: 12px; padding: 12px 8px; border-bottom: 1px solid var(--lc-line); transition: background-color .15s ease-out; }
+.lc-history-sentinel { height: 1px; margin: 0; padding: 0; list-style: none; }
 .lc-bid-row.is-mine { background: color-mix(in srgb, var(--lc-lime) 28%, transparent); }
 .lc-bid-row.is-incoming:not(.is-mine) { background-color: color-mix(in srgb, var(--lc-lime) 42%, transparent); }
 .lc-bid-row.is-footer { justify-content: center; border: 0; color: var(--lc-muted); font-size: 13px; }
