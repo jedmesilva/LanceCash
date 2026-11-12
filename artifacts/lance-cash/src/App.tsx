@@ -303,6 +303,12 @@ function LanceCash() {
       : realtimeConnected ? 'healthy' : 'delayed';
   useHealthCheck();
   const state = stateQuery.data as LanceCashState | undefined;
+  const hasAccountData =
+    isAuthenticated &&
+    state !== undefined &&
+    state.user !== null &&
+    state.user.name.trim().length > 0 &&
+    Number.isFinite(state.balance);
   const auctions = state?.auctions ?? [];
   const currentIndex = Math.max(0, auctions.findIndex((auction) => auction.id === state?.currentAuctionId));
   const currentAuction = auctions[currentIndex];
@@ -574,6 +580,7 @@ function LanceCash() {
       openAuth();
       return;
     }
+    if (!hasAccountData) return;
     if (!purchaseDialogRef.current?.open) purchaseDialogRef.current?.showModal();
   };
   const openAccount = () => {
@@ -581,6 +588,7 @@ function LanceCash() {
       openAuth();
       return;
     }
+    if (!hasAccountData) return;
     setAccountView('main');
     setAccountNotice('');
     accountDialogRef.current?.showModal();
@@ -841,13 +849,13 @@ function LanceCash() {
     verificationTarget?.auctionId === currentAuction.id &&
     verificationTarget.deadlineAt === currentAuction.deadlineAt,
   );
-  const buttonDisabled = bidMutation.isPending || isAwaitingVerification || isStateUnverified || isAuthenticated && isVisibleCurrent && currentAuction?.status === 'live' && currentLeaderIsUser;
+  const buttonDisabled = bidMutation.isPending || isAwaitingVerification || isStateUnverified || isAuthenticated && (!hasAccountData || isVisibleCurrent && currentAuction?.status === 'live' && currentLeaderIsUser);
   return (
     <main className="lc-app">
       <header className="lc-header">
         <div className="lc-brand"><LogoMark /> Lance Cash</div>
         <div className="lc-actions">
-          {isAuthenticated ? (
+          {hasAccountData ? (
             <>
               <button className="lc-balance" type="button" onClick={openPurchase} aria-label={`Você tem ${state.balance} ${state.balance === 1 ? 'lance' : 'lances'}. Comprar mais`} data-testid="button-buy-bids">
                 <Zap size={16} fill="currentColor" aria-hidden="true" />
@@ -855,15 +863,15 @@ function LanceCash() {
                 <span className="lc-plus"><Plus size={16} strokeWidth={3} /></span>
               </button>
               <button className="lc-avatar" type="button" onClick={openAccount} aria-label="Abrir minha conta" aria-haspopup="dialog" data-testid="button-open-account">
-                {state.user?.name.trim()[0]?.toUpperCase() || 'V'}
+                {state.user?.name.trim()[0]?.toUpperCase()}
               </button>
             </>
-          ) : (
+          ) : !isAuthenticated ? (
             <button className="lc-header-login" type="button" onClick={openAuth} aria-haspopup="dialog" data-testid="button-open-auth">
               <LogIn size={17} strokeWidth={2.5} aria-hidden="true" />
               Entrar
             </button>
-          )}
+          ) : null}
         </div>
       </header>
 
@@ -1036,7 +1044,7 @@ function LanceCash() {
         <button className="lc-cta" type="button" onClick={() => void placeBid()} disabled={buttonDisabled} data-testid="button-place-bid">
           {isAwaitingVerification ? 'Verificando resultado…'
             : bidMutation.isPending ? 'Enviando lance…'
-            : isVisibleCurrent ? !isAuthenticated ? 'Entrar para participar' : currentIsEnded ? 'Próximo leilão' : currentLeaderIsUser ? 'Você deu o último lance' : state.balance ? 'Dar lance' : 'Comprar lances'
+            : isVisibleCurrent ? !isAuthenticated ? 'Entrar para participar' : currentIsEnded ? 'Próximo leilão' : !hasAccountData ? 'Carregando saldo…' : currentLeaderIsUser ? 'Você deu o último lance' : state.balance ? 'Dar lance' : 'Comprar lances'
               : visibleIndex === currentIndex + 1 && currentIsEnded ? 'Começar este leilão'
                 : currentAuction.status === 'ended' ? 'Ir para o leilão mais recente' : 'Voltar ao leilão ao vivo'}
         </button>
@@ -1089,12 +1097,12 @@ function LanceCash() {
             <button className="lc-close" type="button" aria-label="Fechar" onClick={() => accountDialogRef.current?.close()} data-testid="button-close-account"><X size={16} strokeWidth={3} /></button>
           </div>
 
-          {accountView === 'main' && (
+          {accountView === 'main' && state.user && (
             <section className="lc-account-main">
               {accountNotice && <p className="lc-status" role="status">{accountNotice}</p>}
               <button className="lc-account-user" type="button" onClick={openProfile} aria-label="Editar dados da conta" data-testid="button-edit-profile">
-                <span className="lc-avatar big">{state.user?.name.trim()[0]?.toUpperCase() || 'V'}</span>
-                <span className="lc-user-copy"><b>{state.user?.name}</b><small>{state.user?.email}</small></span>
+                <span className="lc-avatar big">{state.user.name.trim()[0]?.toUpperCase()}</span>
+                <span className="lc-user-copy"><b>{state.user.name}</b><small>{state.user.email}</small></span>
                 <span className="lc-edit">Editar</span>
               </button>
               <button className="lc-row-button" type="button" onClick={() => setAccountView('prizes')} data-testid="button-open-prizes">
