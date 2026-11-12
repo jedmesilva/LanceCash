@@ -22,6 +22,10 @@ import {
   usersTable,
 } from "@workspace/db";
 import { hashPassword, verifyPassword } from "./passwords";
+import {
+  publishAuctionUpdate,
+  type AuctionRealtimeUpdate,
+} from "./auction-realtime";
 
 type AuctionStatus = "live" | "ended" | "upcoming";
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -217,7 +221,28 @@ async function getCurrentAuction(tx: Transaction) {
   return latestEndedAuction;
 }
 
-async function advanceCurrentAuction(tx: Transaction): Promise<void> {
+function createAuctionRealtimeUpdate(
+  auction: typeof auctionsTable.$inferSelect,
+  options: Partial<Omit<AuctionRealtimeUpdate, "type" | "auctionId" | "prize">> = {},
+): AuctionRealtimeUpdate {
+  return {
+    type: "auction:update",
+    auctionId: auction.id,
+    prize: Math.round(auction.prizeAmountCents / 100),
+    currentAuctionId: options.currentAuctionId ?? auction.id,
+    status: options.status ?? auction.status,
+    bidCount: options.bidCount ?? auction.bidCount,
+    leader: options.leader ?? auction.currentLeaderName,
+    startedAt: options.startedAt !== undefined ? options.startedAt : toIso(auction.startedAt),
+    deadlineAt: options.deadlineAt !== undefined ? options.deadlineAt : toIso(auction.deadlineAt),
+    serverTime: options.serverTime ?? new Date().toISOString(),
+    bid: options.bid ?? null,
+  };
+}
+
+async function advanceCurrentAuction(
+  tx: Transaction,
+): Promise<AuctionRealtimeUpdate | null> {
   const [auction] = await tx
     .select()
     .from(auctionsTable)
@@ -225,7 +250,7 @@ async function advanceCurrentAuction(tx: Transaction): Promise<void> {
     .orderBy(desc(auctionsTable.id))
     .limit(1)
     .for("update");
-  if (!auction) return;
+  if (!auction) return null;
 
   const now = new Date();
   if (auction.deadlineAt && now >= auction.deadlineAt) {
@@ -245,10 +270,14 @@ async function advanceCurrentAuction(tx: Transaction): Promise<void> {
         })
         .onConflictDoNothing();
     }
-    return;
+    return createAuctionRealtimeUpdate(auction, {
+      status: "ended",
+      deadlineAt: null,
+      serverTime: now.toISOString(),
+    });
   }
 
-  if (!auction.nextBotAt || now < auction.nextBotAt) return;
+  if (!auction.nextBotAt || now < auction.nextBotAt) return null;
 
   const bidNumber = auction.bidCount + 1;
   const bidderName =
@@ -264,25 +293,42 @@ async function advanceCurrentAuction(tx: Transaction): Promise<void> {
     isAutomated: true,
     createdAt: now,
   });
+  const deadlineAt = new Date(now.getTime() + auctionDurationMs);
   await tx
     .update(auctionsTable)
     .set({
       bidCount: bidNumber,
       currentLeaderName: bidderName,
       currentLeaderUserId: null,
-      deadlineAt: new Date(now.getTime() + auctionDurationMs),
+      deadlineAt,
       nextBotAt,
     })
     .where(eq(auctionsTable.id, auction.id));
+
+  return createAuctionRealtimeUpdate(auction, {
+    status: "live",
+    bidCount: bidNumber,
+    leader: bidderName,
+    deadlineAt: deadlineAt.toISOString(),
+    serverTime: now.toISOString(),
+    bid: {
+      number: bidNumber,
+      leader: bidderName,
+      createdAt: now.toISOString(),
+    },
+  });
 }
 
-async function ensureUpcomingAuction(tx: Transaction): Promise<void> {
+async function ensureUpcomingAuction(
+  tx: Transaction,
+  currentAuctionId?: number,
+): Promise<AuctionRealtimeUpdate | null> {
   const [upcomingAuction] = await tx
     .select({ id: auctionsTable.id })
     .from(auctionsTable)
     .where(eq(auctionsTable.status, "upcoming"))
     .limit(1);
-  if (upcomingAuction) return;
+  if (upcomingAuction) return null;
 
   const [latestAuction] = await tx
     .select({ id: auctionsTable.id })
@@ -292,11 +338,21 @@ async function ensureUpcomingAuction(tx: Transaction): Promise<void> {
   const nextId = (latestAuction?.id ?? 0) + 1;
   const prizeAmountCents =
     upcomingPrizesCents[nextId % upcomingPrizesCents.length] ?? 100_000;
-  await tx.insert(auctionsTable).values({
-    prizeAmountCents,
-    status: "upcoming",
-    bidCount: 0,
-    currentLeaderName: "",
+  const [createdAuction] = await tx
+    .insert(auctionsTable)
+    .values({
+      prizeAmountCents,
+      status: "upcoming",
+      bidCount: 0,
+      currentLeaderName: "",
+    })
+    .returning();
+  if (!createdAuction) return null;
+
+  const activeId =
+    currentAuctionId ?? (await getCurrentAuction(tx))?.id ?? createdAuction.id;
+  return createAuctionRealtimeUpdate(createdAuction, {
+    currentAuctionId: activeId,
   });
 }
 
@@ -305,11 +361,19 @@ async function lockAuctionLifecycle(tx: Transaction): Promise<void> {
 }
 
 export async function advanceAuctions(): Promise<void> {
-  await db.transaction(async (tx) => {
+  const updates = await db.transaction(async (tx) => {
     await lockAuctionLifecycle(tx);
-    await advanceCurrentAuction(tx);
-    await ensureUpcomingAuction(tx);
+    const events: AuctionRealtimeUpdate[] = [];
+    const currentUpdate = await advanceCurrentAuction(tx);
+    if (currentUpdate) events.push(currentUpdate);
+    const upcomingUpdate = await ensureUpcomingAuction(
+      tx,
+      currentUpdate?.currentAuctionId,
+    );
+    if (upcomingUpdate) events.push(upcomingUpdate);
+    return events;
   });
+  for (const update of updates) publishAuctionUpdate(update);
 }
 
 function toIso(value: Date | null): string | null {
@@ -425,7 +489,7 @@ export async function readState(userId: string) {
         redeemed: prize.redemptionId !== null,
       })),
     };
-  });
+  }, { isolationLevel: "repeatable read" });
 }
 
 export async function readPublicState() {
@@ -497,7 +561,9 @@ export async function readOlderBids(
 export async function placeBid(userId: string, auctionId: number) {
   const result = await db.transaction(async (tx) => {
     await lockAuctionLifecycle(tx);
-    await advanceCurrentAuction(tx);
+    const events: AuctionRealtimeUpdate[] = [];
+    const lifecycleUpdate = await advanceCurrentAuction(tx);
+    if (lifecycleUpdate) events.push(lifecycleUpdate);
     let current = await getCurrentAuction(tx);
     if (current?.status === "ended") {
       const [target] = await tx
@@ -509,26 +575,35 @@ export async function placeBid(userId: string, auctionId: number) {
 
       if (target?.status === "upcoming") {
         const now = new Date();
+        const deadlineAt = new Date(now.getTime() + auctionDurationMs);
         await tx
           .update(auctionsTable)
           .set({
             status: "live",
             startedAt: now,
-            deadlineAt: new Date(now.getTime() + auctionDurationMs),
+            deadlineAt,
             nextBotAt: new Date(now.getTime() + 3_000),
           })
           .where(eq(auctionsTable.id, target.id));
-        await ensureUpcomingAuction(tx);
-        return { ok: true as const };
+        events.push(createAuctionRealtimeUpdate(target, {
+          currentAuctionId: target.id,
+          status: "live",
+          startedAt: now.toISOString(),
+          deadlineAt: deadlineAt.toISOString(),
+          serverTime: now.toISOString(),
+        }));
+        const upcomingUpdate = await ensureUpcomingAuction(tx, target.id);
+        if (upcomingUpdate) events.push(upcomingUpdate);
+        return { ok: true as const, events };
       }
     }
 
     current = await getCurrentAuction(tx);
     if (!current || current.id !== auctionId || current.status !== "live") {
-      return { error: "Este leilão não está ao vivo." } as const;
+      return { error: "Este leilão não está ao vivo.", events } as const;
     }
     if (current.currentLeaderUserId === userId) {
-      return { error: "Você deu o último lance." } as const;
+      return { error: "Você deu o último lance.", events } as const;
     }
 
     const [wallet] = await tx
@@ -547,11 +622,13 @@ export async function placeBid(userId: string, auctionId: number) {
     if (!wallet) {
       return {
         error: "Seu saldo acabou. Compre lances para continuar.",
+        events,
       } as const;
     }
 
     const bidNumber = current.bidCount + 1;
     const now = new Date();
+    const deadlineAt = new Date(now.getTime() + auctionDurationMs);
     const [bid] = await tx
       .insert(auctionBidsTable)
       .values({
@@ -579,14 +656,29 @@ export async function placeBid(userId: string, auctionId: number) {
         bidCount: bidNumber,
         currentLeaderName: "Você",
         currentLeaderUserId: userId,
-        deadlineAt: new Date(now.getTime() + auctionDurationMs),
+        deadlineAt,
         nextBotAt: new Date(now.getTime() + 2_500 + Math.random() * 3_500),
       })
       .where(eq(auctionsTable.id, current.id));
 
-    return { ok: true as const };
+    events.push(createAuctionRealtimeUpdate(current, {
+      currentAuctionId: current.id,
+      status: "live",
+      bidCount: bidNumber,
+      leader: "Você",
+      deadlineAt: deadlineAt.toISOString(),
+      serverTime: now.toISOString(),
+      bid: {
+        number: bidNumber,
+        leader: "Você",
+        createdAt: now.toISOString(),
+      },
+    }));
+
+    return { ok: true as const, events };
   });
 
+  for (const event of result.events) publishAuctionUpdate(event);
   if ("error" in result) return result;
   return { state: await readState(userId) };
 }

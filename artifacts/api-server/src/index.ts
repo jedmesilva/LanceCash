@@ -1,6 +1,7 @@
 import app from "./app";
 import { advanceAuctions, ensureDemoData } from "./lib/lance-cash-db";
 import { startAuctionWorker } from "./lib/auction-worker";
+import { attachAuctionRealtime } from "./lib/auction-realtime";
 import { logger } from "./lib/logger";
 
 const rawPort = process.env["PORT"];
@@ -22,9 +23,11 @@ async function startServer(): Promise<void> {
   await advanceAuctions();
 
   const server = app.listen(port, () => {
+    const stopAuctionRealtime = attachAuctionRealtime(server);
     const stopAuctionWorker = startAuctionWorker();
     const shutdown = () => {
       stopAuctionWorker();
+      stopAuctionRealtime();
       server.close(() => logger.info("Server stopped"));
     };
     process.once("SIGTERM", shutdown);

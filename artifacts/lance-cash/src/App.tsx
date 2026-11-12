@@ -1,4 +1,4 @@
-import { memo, type FormEvent, type MutableRefObject, useEffect, useRef, useState } from 'react';
+import { memo, type FormEvent, type MutableRefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, Eye, EyeOff, LogIn, Plus, X, Zap } from 'lucide-react';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
@@ -30,6 +30,7 @@ import type {
   LancePackage,
   ProfileUpdateInput,
 } from '@workspace/api-client-react';
+import { useAuctionRealtime, type AuctionRealtimeUpdate } from '@/hooks/use-auction-realtime';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { BidRow, LogoMark, TrophyMark } from '@/design-system';
 import './lance-cash.css';
@@ -169,8 +170,76 @@ const AuctionCountdown = memo(function AuctionCountdown({
 function LanceCash() {
   const queryClient = useQueryClient();
   const authQuery = useGetAuthMe({ query: { retry: false, refetchInterval: 60_000 } });
-  const stateQuery = useGetLanceCashState({ query: { refetchInterval: 3000 } });
   const isAuthenticated = Boolean(authQuery.data?.user) && apiErrorStatus(authQuery.error) !== 401;
+  const serverOffsetRef = useRef(0);
+  const handleAuctionUpdate = useCallback((event: AuctionRealtimeUpdate) => {
+    serverOffsetRef.current = Date.parse(event.serverTime) - Date.now();
+
+    let shouldRefreshState = false;
+    const queryKey = getGetLanceCashStateQueryKey();
+    void queryClient.cancelQueries({ queryKey });
+    queryClient.setQueryData<LanceCashState>(queryKey, (current) => {
+      if (!current) {
+        shouldRefreshState = true;
+        return current;
+      }
+
+      const existing = current.auctions.find((auction) => auction.id === event.auctionId);
+      if (existing && event.bidCount < existing.bidCount) return current;
+      if (existing && event.bidCount > existing.bidCount + 1) shouldRefreshState = true;
+      if (!existing && event.status !== 'upcoming') {
+        shouldRefreshState = true;
+        return current;
+      }
+
+      const publicLeader = !isAuthenticated && event.leader === 'Você'
+        ? 'Participante'
+        : event.leader;
+      const incomingBid = event.bid
+        ? {
+          ...event.bid,
+          leader: !isAuthenticated && event.bid.leader === 'Você'
+            ? 'Participante'
+            : event.bid.leader,
+        }
+        : null;
+      const bids = incomingBid
+        ? [
+          incomingBid,
+          ...(existing?.bids ?? []).filter((bid) => bid.number !== incomingBid.number),
+        ].sort((a, b) => b.number - a.number).slice(0, 12)
+        : existing?.bids ?? [];
+      const updatedAuction: LanceCashAuction = {
+        id: event.auctionId,
+        prize: event.prize,
+        status: event.status,
+        bidCount: event.bidCount,
+        leader: publicLeader,
+        startedAt: event.startedAt,
+        deadlineAt: event.deadlineAt,
+        usedBids: existing?.usedBids ?? 0,
+        bids,
+        historyHasMore: event.bidCount > bids.length,
+      };
+      const auctions = existing
+        ? current.auctions.map((auction) => auction.id === event.auctionId ? updatedAuction : auction)
+        : [...current.auctions, updatedAuction].sort((a, b) => a.id - b.id);
+
+      return {
+        ...current,
+        currentAuctionId: event.currentAuctionId,
+        auctions,
+      };
+    });
+
+    if (shouldRefreshState) {
+      void queryClient.invalidateQueries({ queryKey });
+    }
+  }, [isAuthenticated, queryClient]);
+  const realtimeConnected = useAuctionRealtime(handleAuctionUpdate);
+  const stateQuery = useGetLanceCashState({
+    query: { refetchInterval: realtimeConnected ? 30_000 : 3_000 },
+  });
   useHealthCheck();
   const state = stateQuery.data as LanceCashState | undefined;
   const auctions = state?.auctions ?? [];
@@ -207,11 +276,11 @@ function LanceCash() {
   const accountDialogRef = useRef<HTMLDialogElement>(null);
   const authDialogRef = useRef<HTMLDialogElement>(null);
   const scrollFrame = useRef<number | null>(null);
-  const serverOffsetRef = useRef(0);
   const initializedAuctionRef = useRef<number | null>(null);
   const packageRequestRef = useRef<{ packageId: string; requestId: string } | null>(null);
   const lastBidCountByAuctionRef = useRef<Map<number, number> | null>(null);
   const incomingBidTimerRef = useRef<number | null>(null);
+  const hasConnectedRealtimeRef = useRef(false);
 
   const visibleAuction = auctions[visibleIndex] ?? currentAuction;
   const historyParams = {
@@ -231,6 +300,16 @@ function LanceCash() {
   const loginMutation = usePostAuthLogin();
   const registerMutation = usePostAuthRegister();
   const logoutMutation = usePostAuthLogout();
+
+  useEffect(() => {
+    if (!realtimeConnected) return;
+    if (!hasConnectedRealtimeRef.current) {
+      hasConnectedRealtimeRef.current = true;
+      return;
+    }
+    const queryKey = getGetLanceCashStateQueryKey();
+    void queryClient.invalidateQueries({ queryKey });
+  }, [queryClient, realtimeConnected]);
 
   useEffect(() => {
     if (state?.serverTime) serverOffsetRef.current = Date.parse(state.serverTime) - Date.now();
