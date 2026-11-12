@@ -1,4 +1,5 @@
 import type { AuctionBid } from '@workspace/api-client-react';
+import { motion } from 'framer-motion';
 import { memo } from 'react';
 
 const number = new Intl.NumberFormat('pt-BR');
@@ -18,7 +19,11 @@ export const BidRow = memo(function BidRow({ bid, fresh = false }: { bid: Auctio
   ) % colors.length;
 
   return (
-    <li
+    <motion.li
+      layout="position"
+      initial={fresh ? { opacity: 0, y: -12 } : false}
+      animate={fresh ? { opacity: 1, y: 0 } : undefined}
+      transition={{ layout: { type: 'spring', stiffness: 480, damping: 36 } }}
       className={`lc-bid-row${isMine ? ' is-mine' : ''}${fresh ? ' is-new' : ''}`}
       data-testid={`row-bid-${bid.number}`}
     >
@@ -36,6 +41,6 @@ export const BidRow = memo(function BidRow({ bid, fresh = false }: { bid: Auctio
       <time className="lc-bid-time" dateTime={bid.createdAt}>
         {new Date(bid.createdAt).toLocaleTimeString('pt-BR')}
       </time>
-    </li>
+    </motion.li>
   );
 });
