@@ -479,6 +479,12 @@ function LanceCash() {
   }, []);
 
   useEffect(() => {
+    if (!accountNotice) return;
+    const timer = window.setTimeout(() => setAccountNotice(''), 4000);
+    return () => window.clearTimeout(timer);
+  }, [accountNotice]);
+
+  useEffect(() => {
     if (apiErrorStatus(authQuery.error) !== 401) return;
     accountDialogRef.current?.close();
     queryClient.removeQueries({ queryKey: ['/api/lance-cash/bids/history'] });
