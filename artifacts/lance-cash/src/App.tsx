@@ -289,7 +289,9 @@ function LanceCash() {
       },
     },
   });
-  const serverConnectionLost = !browserOnline || stateQuery.isError && Boolean(stateQuery.data);
+  const hasStateSyncError = stateQuery.isError && Boolean(stateQuery.data);
+  const serverConnectionLost = !browserOnline || !realtimeConnected && hasStateSyncError;
+  const stateSyncFailed = browserOnline && realtimeConnected && hasStateSyncError;
   useHealthCheck();
   const state = stateQuery.data as LanceCashState | undefined;
   const auctions = state?.auctions ?? [];
@@ -806,7 +808,21 @@ function LanceCash() {
 
   const hasPrevious = visibleIndex > 0;
   const hasNext = visibleIndex < auctions.length - 1;
-  const statusLabel = visibleAuction?.status === 'live' ? 'Ao vivo' : visibleAuction?.status === 'ended' ? 'Encerrado' : 'Em breve';
+  const statusLabel = serverConnectionLost ? 'Desconectado'
+    : stateSyncFailed ? 'Falha na sincronização'
+      : !realtimeConnected ? 'Atrasado'
+        : visibleAuction.status === 'live' ? 'Ao vivo'
+          : visibleAuction.status === 'ended' ? 'Encerrado' : 'Em breve';
+  const statusTone = serverConnectionLost ? 'is-disconnected'
+    : stateSyncFailed ? 'is-sync-error'
+      : !realtimeConnected ? 'is-delayed'
+        : visibleAuction.status === 'live' ? 'is-live' : 'is-neutral';
+  const statusDescription = serverConnectionLost ? 'Desconectado; cronômetro pausado'
+    : stateSyncFailed ? 'Falha ao atualizar o estado HTTP; WebSocket ainda conectado'
+      : !realtimeConnected ? 'Atualização em tempo real atrasada; sincronização HTTP ativa'
+        : visibleAuction.status === 'live' ? 'Leilão ao vivo; servidor conectado'
+          : visibleAuction.status === 'ended' ? 'Leilão encerrado; servidor conectado'
+            : 'Leilão em breve; servidor conectado';
   const currentLeaderIsUser = currentAuction?.leader === 'Você';
   const currentIsEnded = currentAuction?.status === 'ended';
   const isVisibleCurrent = visibleIndex === currentIndex;
@@ -844,12 +860,12 @@ function LanceCash() {
       <nav className="lc-pager" aria-label="Navegar entre leilões">
         <button className="lc-pager-button" type="button" aria-label="Leilão anterior" disabled={!hasPrevious} onClick={() => scrollToIndex(visibleIndex - 1)} data-testid="button-previous-auction"><ChevronLeft size={20} strokeWidth={3} /></button>
         <div className="lc-pager-caption">
-          <span><b data-testid="text-auction-position">Leilão #{NUMBER.format(visibleAuction.id)}</b> · {statusLabel}</span>
-          <span className={`lc-realtime-status${realtimeConnected && !serverConnectionLost ? ' is-connected' : ''}`} role="status">
-            <i aria-hidden="true" />
-            {serverConnectionLost ? 'Sem conexão · cronômetro pausado'
-              : realtimeConnected ? 'Servidor conectado'
-                : 'Tempo real reconectando · sincronização ativa'}
+          <span>
+            <b data-testid="text-auction-position">Leilão #{NUMBER.format(visibleAuction.id)}</b> ·{' '}
+            <span className={`lc-sync-label ${statusTone}`} role="status" aria-label={statusDescription}>
+              <i aria-hidden="true" />
+              {statusLabel}
+            </span>
           </span>
           <div className="lc-dots" aria-hidden="true">
             {auctions.map((auction, index) => <i key={auction.id} className={`${index === visibleIndex ? 'selected ' : ''}${auction.id === state.currentAuctionId ? 'live' : ''}`} />)}

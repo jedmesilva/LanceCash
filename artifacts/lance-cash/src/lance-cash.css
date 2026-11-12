@@ -82,9 +82,13 @@ button:disabled { cursor: default; }
 .lc-pager-button:disabled { opacity: .25; }
 .lc-pager-caption { display: grid; justify-items: center; gap: 6px; color: var(--lc-muted); font-size: 13px; font-weight: 600; }
 .lc-pager-caption b { color: var(--lc-text); font-weight: 800; }
-.lc-realtime-status { display: flex; align-items: center; gap: 6px; color: var(--lc-alert); font-size: 11px; font-weight: 700; }
-.lc-realtime-status i { width: 7px; height: 7px; border-radius: var(--lc-radius-circle); background: currentColor; }
-.lc-realtime-status.is-connected { color: var(--lc-green); }
+.lc-sync-label { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; }
+.lc-sync-label i { width: 7px; height: 7px; border-radius: var(--lc-radius-circle); background: currentColor; }
+.lc-sync-label.is-live { color: var(--lc-green); }
+.lc-sync-label.is-delayed { color: #946000; }
+.lc-sync-label.is-disconnected { color: var(--lc-alert); }
+.lc-sync-label.is-sync-error { color: #946000; }
+.lc-sync-label.is-neutral { color: var(--lc-muted); }
 .lc-dots { display: flex; align-items: center; gap: 6px; }
 .lc-dots i { width: 6px; height: 6px; border-radius: var(--lc-radius-circle); background: var(--lc-line); }
 .lc-dots i.live { background: var(--lc-lime); box-shadow: inset 0 0 0 1.5px var(--lc-text); }
