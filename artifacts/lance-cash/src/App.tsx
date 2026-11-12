@@ -9,7 +9,9 @@ import NotFound from '@/pages/not-found';
 import {
   getGetLanceCashAuctionBidsQueryKey,
   getGetAuthMeQueryKey,
+  getGetLanceCashAuctionsQueryKey,
   getGetLanceCashStateQueryKey,
+  getLanceCashAuctions,
   useGetLanceCashAuctionBids,
   useGetAuthMe,
   useGetLanceCashState,
@@ -38,6 +40,15 @@ import { BidRow, LogoMark, TrophyMark } from '@/design-system';
 import './lance-cash.css';
 
 type CountdownConnectionState = 'healthy' | 'delayed' | 'disconnected' | 'sync-error';
+type AuctionPageDirection = 'previous' | 'next';
+
+function mergeAuctions(...lists: LanceCashAuction[][]): LanceCashAuction[] {
+  const byId = new Map<number, LanceCashAuction>();
+  for (const list of lists) {
+    for (const auction of list) byId.set(auction.id, auction);
+  }
+  return [...byId.values()].sort((a, b) => a.id - b.id);
+}
 
 const queryClient = new QueryClient();
 const BRL0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -200,6 +211,7 @@ function LanceCash() {
   const isAuthenticated = Boolean(authQuery.data?.user) && apiErrorStatus(authQuery.error) !== 401;
   const authenticatedUser = isAuthenticated ? authQuery.data?.user : undefined;
   const authenticatedUserEmail = authenticatedUser?.email.toLowerCase();
+  const auctionScope = isAuthenticated && authenticatedUser ? authenticatedUser.id : 'public';
   const serverOffsetRef = useRef(0);
   const accountStateRefreshRef = useRef(false);
   const refreshStateAfterAccountRef = useRef(false);
@@ -335,7 +347,16 @@ function LanceCash() {
     state.user.email.trim().length > 0 &&
     state.user.email.toLowerCase() === authenticatedUser.email.toLowerCase() &&
     Number.isFinite(state.balance);
-  const auctions = state?.auctions ?? [];
+  const loadedAuctions = loadedAuctionState.scope === auctionScope
+    ? loadedAuctionState.auctions
+    : [];
+  const auctions = mergeAuctions(loadedAuctions, state?.auctions ?? []);
+  const hasMorePreviousAuctions = auctionPageAvailability.scope === auctionScope
+    ? auctionPageAvailability.previous
+    : state?.auctionPagination.hasPrevious ?? false;
+  const hasMoreNextAuctions = auctionPageAvailability.scope === auctionScope
+    ? auctionPageAvailability.next
+    : state?.auctionPagination.hasNext ?? false;
   const currentIndex = Math.max(0, auctions.findIndex((auction) => auction.id === state?.currentAuctionId));
   const currentAuction = auctions[currentIndex];
   useEffect(() => {
@@ -351,6 +372,8 @@ function LanceCash() {
     }
   }, [state, verificationTarget]);
   const [visibleIndex, setVisibleIndex] = useState(0);
+  const [loadedAuctionState, setLoadedAuctionState] = useState<{ scope: string; auctions: LanceCashAuction[] }>({ scope: 'public', auctions: [] });
+  const [auctionPageAvailability, setAuctionPageAvailability] = useState<{ scope: string; previous: boolean; next: boolean }>({ scope: 'public', previous: false, next: false });
   const [historyRequest, setHistoryRequest] = useState<{ auctionId: number; before: number } | null>(null);
   const [historyExtra, setHistoryExtra] = useState<Record<number, AuctionBid[]>>({});
   const [historyHasMoreByAuction, setHistoryHasMoreByAuction] = useState<Record<number, boolean>>({});
@@ -387,6 +410,9 @@ function LanceCash() {
   const packageRequestRef = useRef<{ packageId: string; requestId: string } | null>(null);
   const lastBidCountByAuctionRef = useRef<Map<number, number> | null>(null);
   const incomingBidTimerRef = useRef<number | null>(null);
+  const auctionPageLoadingRef = useRef(new Set<AuctionPageDirection>());
+  const auctionPagesLoadedRef = useRef({ previous: false, next: false });
+  const auctionScrollTargetRef = useRef<{ auctionId: number; behavior: ScrollBehavior } | null>(null);
   const hasConnectedRealtimeRef = useRef(false);
 
   const visibleAuction = auctions[visibleIndex] ?? currentAuction;

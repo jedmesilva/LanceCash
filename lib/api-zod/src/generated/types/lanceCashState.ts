@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { LanceCashAuction } from './lanceCashAuction';
+import type { LanceCashAuctionPagination } from './lanceCashAuctionPagination';
 import type { LanceCashPrize } from './lanceCashPrize';
 import type { LanceCashUser } from './lanceCashUser';
 import type { LancePackage } from './lancePackage';
@@ -16,6 +17,7 @@ export interface LanceCashState {
   serverTime: Date;
   user: LanceCashUser | null;
   auctions: LanceCashAuction[];
+  auctionPagination: LanceCashAuctionPagination;
   packages: LancePackage[];
   prizes: LanceCashPrize[];
 }

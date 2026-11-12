@@ -91,7 +91,7 @@ export const PostAuthLogoutResponse = zod.void()
 
 
 /**
- * @summary Get public auction state and optional account details
+ * @summary Get the current auction window and account details
  */
 
 
@@ -120,6 +120,12 @@ export const GetLanceCashStateResponse = zod.object({
 })),
   "historyHasMore": zod.boolean()
 })),
+  "auctionPagination": zod.object({
+  "previousCursor": zod.number().int().nullable(),
+  "nextCursor": zod.number().int().nullable(),
+  "hasPrevious": zod.boolean(),
+  "hasNext": zod.boolean()
+}),
   "packages": zod.array(zod.object({
   "id": zod.enum(['starter', 'value', 'popular', 'best']),
   "bids": zod.number().int(),
@@ -133,6 +139,47 @@ export const GetLanceCashStateResponse = zod.object({
   "wonAt": zod.coerce.date(),
   "redeemed": zod.boolean()
 }))
+})
+
+
+/**
+ * @summary Get a cursor-paginated page of neighboring auctions
+ */
+
+export const getLanceCashAuctionsQueryLimitDefault = 5;
+export const getLanceCashAuctionsQueryLimitMax = 10;
+
+
+
+export const GetLanceCashAuctionsQueryParams = zod.object({
+  "direction": zod.enum(['previous', 'next']),
+  "cursor": zod.coerce.number().int().min(1),
+  "limit": zod.coerce.number().int().min(1).max(getLanceCashAuctionsQueryLimitMax).default(getLanceCashAuctionsQueryLimitDefault)
+})
+
+
+
+
+export const GetLanceCashAuctionsResponse = zod.object({
+  "auctions": zod.array(zod.object({
+  "id": zod.number().int(),
+  "prize": zod.number().int(),
+  "status": zod.enum(['live', 'ended', 'upcoming']),
+  "bidCount": zod.number().int(),
+  "leader": zod.string(),
+  "startedAt": zod.coerce.date().nullable(),
+  "deadlineAt": zod.coerce.date().nullable(),
+  "usedBids": zod.number().int(),
+  "bids": zod.array(zod.object({
+  "number": zod.number().int().min(1),
+  "leader": zod.string(),
+  "createdAt": zod.coerce.date()
+})),
+  "historyHasMore": zod.boolean()
+})),
+  "direction": zod.enum(['previous', 'next']),
+  "cursor": zod.number().int().nullable(),
+  "hasMore": zod.boolean()
 })
 
 
@@ -199,6 +246,12 @@ export const PlaceLanceCashBidResponse = zod.object({
 })),
   "historyHasMore": zod.boolean()
 })),
+  "auctionPagination": zod.object({
+  "previousCursor": zod.number().int().nullable(),
+  "nextCursor": zod.number().int().nullable(),
+  "hasPrevious": zod.boolean(),
+  "hasNext": zod.boolean()
+}),
   "packages": zod.array(zod.object({
   "id": zod.enum(['starter', 'value', 'popular', 'best']),
   "bids": zod.number().int(),
@@ -250,6 +303,12 @@ export const PurchaseLancePackageResponse = zod.object({
 })),
   "historyHasMore": zod.boolean()
 })),
+  "auctionPagination": zod.object({
+  "previousCursor": zod.number().int().nullable(),
+  "nextCursor": zod.number().int().nullable(),
+  "hasPrevious": zod.boolean(),
+  "hasNext": zod.boolean()
+}),
   "packages": zod.array(zod.object({
   "id": zod.enum(['starter', 'value', 'popular', 'best']),
   "bids": zod.number().int(),
@@ -305,6 +364,12 @@ export const UpdateLanceCashProfileResponse = zod.object({
 })),
   "historyHasMore": zod.boolean()
 })),
+  "auctionPagination": zod.object({
+  "previousCursor": zod.number().int().nullable(),
+  "nextCursor": zod.number().int().nullable(),
+  "hasPrevious": zod.boolean(),
+  "hasNext": zod.boolean()
+}),
   "packages": zod.array(zod.object({
   "id": zod.enum(['starter', 'value', 'popular', 'best']),
   "bids": zod.number().int(),
@@ -366,6 +431,12 @@ export const ChangeLanceCashPasswordResponse = zod.object({
 })),
   "historyHasMore": zod.boolean()
 })),
+  "auctionPagination": zod.object({
+  "previousCursor": zod.number().int().nullable(),
+  "nextCursor": zod.number().int().nullable(),
+  "hasPrevious": zod.boolean(),
+  "hasNext": zod.boolean()
+}),
   "packages": zod.array(zod.object({
   "id": zod.enum(['starter', 'value', 'popular', 'best']),
   "bids": zod.number().int(),
@@ -419,6 +490,12 @@ export const RedeemLanceCashPrizeResponse = zod.object({
 })),
   "historyHasMore": zod.boolean()
 })),
+  "auctionPagination": zod.object({
+  "previousCursor": zod.number().int().nullable(),
+  "nextCursor": zod.number().int().nullable(),
+  "hasPrevious": zod.boolean(),
+  "hasNext": zod.boolean()
+}),
   "packages": zod.array(zod.object({
   "id": zod.enum(['starter', 'value', 'popular', 'best']),
   "bids": zod.number().int(),

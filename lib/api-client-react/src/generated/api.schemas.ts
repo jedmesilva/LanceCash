@@ -160,15 +160,62 @@ export interface LanceCashPrize {
   redeemed: boolean;
 }
 
+export interface LanceCashAuctionPagination {
+  /** @nullable */
+  previousCursor: number | null;
+  /** @nullable */
+  nextCursor: number | null;
+  hasPrevious: boolean;
+  hasNext: boolean;
+}
+
 export interface LanceCashState {
   balance: number;
   currentAuctionId: number;
   serverTime: string;
   user: LanceCashUser | null;
   auctions: LanceCashAuction[];
+  auctionPagination: LanceCashAuctionPagination;
   packages: LancePackage[];
   prizes: LanceCashPrize[];
 }
+
+export type LanceCashAuctionPageDirection = typeof LanceCashAuctionPageDirection[keyof typeof LanceCashAuctionPageDirection];
+
+
+export const LanceCashAuctionPageDirection = {
+  previous: 'previous',
+  next: 'next',
+} as const;
+
+export interface LanceCashAuctionPage {
+  auctions: LanceCashAuction[];
+  direction: LanceCashAuctionPageDirection;
+  /** @nullable */
+  cursor: number | null;
+  hasMore: boolean;
+}
+
+export type GetLanceCashAuctionsParams = {
+direction: GetLanceCashAuctionsDirection;
+/**
+ * @minimum 1
+ */
+cursor: number;
+/**
+ * @minimum 1
+ * @maximum 10
+ */
+limit?: number;
+};
+
+export type GetLanceCashAuctionsDirection = typeof GetLanceCashAuctionsDirection[keyof typeof GetLanceCashAuctionsDirection];
+
+
+export const GetLanceCashAuctionsDirection = {
+  previous: 'previous',
+  next: 'next',
+} as const;
 
 export type GetLanceCashAuctionBidsParams = {
 /**

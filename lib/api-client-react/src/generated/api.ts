@@ -30,7 +30,9 @@ import type {
   AuthRegistrationInput,
   AuthResponse,
   GetLanceCashAuctionBidsParams,
+  GetLanceCashAuctionsParams,
   HealthStatus,
+  LanceCashAuctionPage,
   LanceCashState,
   PasswordUpdateInput,
   PlaceBidInput,
@@ -527,7 +529,7 @@ export const getGetLanceCashStateUrl = () => {
 }
 
 /**
- * @summary Get public auction state and optional account details
+ * @summary Get the current auction window and account details
  */
 export const getLanceCashState = async ( options?: Parameters<typeof customFetch>[1]): Promise<LanceCashState> => {
 
@@ -598,7 +600,7 @@ export function useGetLanceCashState<TData = Awaited<ReturnType<typeof getLanceC
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Get public auction state and optional account details
+ * @summary Get the current auction window and account details
  */
 
 export function useGetLanceCashState<TData = Awaited<ReturnType<typeof getLanceCashState>>, TError = ErrorType<unknown>>(
@@ -607,6 +609,114 @@ export function useGetLanceCashState<TData = Awaited<ReturnType<typeof getLanceC
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetLanceCashStateQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetLanceCashAuctionsUrl = (params: GetLanceCashAuctionsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/lance-cash/auctions?${stringifiedParams}` : `/api/lance-cash/auctions`
+}
+
+/**
+ * @summary Get a cursor-paginated page of neighboring auctions
+ */
+export const getLanceCashAuctions = async (params: GetLanceCashAuctionsParams, options?: Parameters<typeof customFetch>[1]): Promise<LanceCashAuctionPage> => {
+
+  return customFetch<LanceCashAuctionPage>(getGetLanceCashAuctionsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLanceCashAuctionsQueryKey = (params?: GetLanceCashAuctionsParams,) => {
+    return [
+    `/api/lance-cash/auctions`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetLanceCashAuctionsQueryOptions = <TData = Awaited<ReturnType<typeof getLanceCashAuctions>>, TError = ErrorType<void>>(params: GetLanceCashAuctionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLanceCashAuctions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLanceCashAuctionsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLanceCashAuctions>>> = ({ signal }) => getLanceCashAuctions(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLanceCashAuctions>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetLanceCashAuctionsQueryResult = NonNullable<Awaited<ReturnType<typeof getLanceCashAuctions>>>
+export type GetLanceCashAuctionsQueryError = ErrorType<void>
+
+
+export function useGetLanceCashAuctions<TData = Awaited<ReturnType<typeof getLanceCashAuctions>>, TError = ErrorType<void>>(
+ params: GetLanceCashAuctionsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLanceCashAuctions>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLanceCashAuctions>>,
+          TError,
+          Awaited<ReturnType<typeof getLanceCashAuctions>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetLanceCashAuctions<TData = Awaited<ReturnType<typeof getLanceCashAuctions>>, TError = ErrorType<void>>(
+ params: GetLanceCashAuctionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLanceCashAuctions>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLanceCashAuctions>>,
+          TError,
+          Awaited<ReturnType<typeof getLanceCashAuctions>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetLanceCashAuctions<TData = Awaited<ReturnType<typeof getLanceCashAuctions>>, TError = ErrorType<void>>(
+ params: GetLanceCashAuctionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLanceCashAuctions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get a cursor-paginated page of neighboring auctions
+ */
+
+export function useGetLanceCashAuctions<TData = Awaited<ReturnType<typeof getLanceCashAuctions>>, TError = ErrorType<void>>(
+ params: GetLanceCashAuctionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLanceCashAuctions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetLanceCashAuctionsQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

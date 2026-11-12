@@ -1,5 +1,7 @@
 import { Router, type IRouter } from "express";
 import {
+  GetLanceCashAuctionsQueryParams,
+  GetLanceCashAuctionsResponse,
   GetLanceCashAuctionBidsQueryParams,
   GetLanceCashAuctionBidsResponse,
   GetLanceCashStateResponse,
@@ -14,6 +16,7 @@ import {
   placeBid,
   purchasePackage,
   readPublicState,
+  readAuctionPage,
   readOlderBids,
   readState,
   redeemPrize,
@@ -29,6 +32,23 @@ router.get("/lance-cash/state", async (req, res): Promise<void> => {
     ? await readState(session.userId)
     : await readPublicState();
   res.json(GetLanceCashStateResponse.parse(state));
+});
+
+router.get("/lance-cash/auctions", async (req, res): Promise<void> => {
+  const parsed = GetLanceCashAuctionsQueryParams.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Parâmetros da página de leilões inválidos." });
+    return;
+  }
+
+  const session = await resolveAuthSession(req, res);
+  const page = await readAuctionPage(
+    session?.userId ?? null,
+    parsed.data.direction,
+    parsed.data.cursor,
+    parsed.data.limit,
+  );
+  res.json(GetLanceCashAuctionsResponse.parse(page));
 });
 
 router.get("/lance-cash/bids/history", async (req, res): Promise<void> => {

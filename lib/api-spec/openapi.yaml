@@ -102,7 +102,7 @@ paths:
     get:
       operationId: getLanceCashState
       tags: [lance-cash]
-      summary: Get public auction state and optional account details
+      summary: Get the current auction window and account details
       responses:
         "200":
           description: Current account and auction state
@@ -110,6 +110,41 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/LanceCashState"
+  /lance-cash/auctions:
+    get:
+      operationId: getLanceCashAuctions
+      tags: [lance-cash]
+      summary: Get a cursor-paginated page of neighboring auctions
+      parameters:
+        - name: direction
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [previous, next]
+        - name: cursor
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+            default: 5
+      responses:
+        "200":
+          description: A page of neighboring auctions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LanceCashAuctionPage"
+        "400":
+          description: Invalid auction page request
   /lance-cash/bids/history:
     get:
       operationId: getLanceCashAuctionBids
@@ -483,6 +518,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/LanceCashAuction"
+        auctionPagination:
+          $ref: "#/components/schemas/LanceCashAuctionPagination"
         packages:
           type: array
           items:
@@ -491,5 +528,32 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/LanceCashPrize"
-      required: [balance, currentAuctionId, serverTime, user, auctions, packages, prizes]
+      required: [balance, currentAuctionId, serverTime, user, auctions, auctionPagination, packages, prizes]
+    LanceCashAuctionPagination:
+      type: object
+      properties:
+        previousCursor:
+          type: ["integer", "null"]
+        nextCursor:
+          type: ["integer", "null"]
+        hasPrevious:
+          type: boolean
+        hasNext:
+          type: boolean
+      required: [previousCursor, nextCursor, hasPrevious, hasNext]
+    LanceCashAuctionPage:
+      type: object
+      properties:
+        auctions:
+          type: array
+          items:
+            $ref: "#/components/schemas/LanceCashAuction"
+        direction:
+          type: string
+          enum: [previous, next]
+        cursor:
+          type: ["integer", "null"]
+        hasMore:
+          type: boolean
+      required: [auctions, direction, cursor, hasMore]
 

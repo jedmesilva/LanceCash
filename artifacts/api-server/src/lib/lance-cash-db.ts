@@ -5,6 +5,7 @@ import {
   count,
   desc,
   eq,
+  gt,
   gte,
   lt,
   sql,
@@ -32,6 +33,8 @@ type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 const auctionDurationMs = 15_000;
 const historyPageSize = 12;
+const initialPreviousAuctionCount = 2;
+const initialNextAuctionCount = 1;
 const demoEmail = "vitor@exemplo.com";
 const seedLockId = 58_416_039;
 const auctionLifecycleLockId = 58_416_040;
@@ -380,6 +383,58 @@ function toIso(value: Date | null): string | null {
   return value?.toISOString() ?? null;
 }
 
+async function mapAuctionStates(
+  tx: Transaction,
+  auctions: (typeof auctionsTable.$inferSelect)[],
+  userId: string | null,
+  currentAuctionId: number,
+) {
+  return Promise.all(
+    auctions.map(async (auction) => {
+      const bidRecords = await tx
+        .select()
+        .from(auctionBidsTable)
+        .where(eq(auctionBidsTable.auctionId, auction.id))
+        .orderBy(desc(auctionBidsTable.bidNumber))
+        .limit(historyPageSize);
+      let usedBids = 0;
+      if (userId && auction.id === currentAuctionId) {
+        const [usedBidsResult] = await tx
+          .select({ value: count() })
+          .from(auctionBidsTable)
+          .where(
+            and(
+              eq(auctionBidsTable.auctionId, currentAuctionId),
+              eq(auctionBidsTable.userId, userId),
+            ),
+          );
+        usedBids = usedBidsResult?.value ?? 0;
+      }
+
+      return {
+        id: auction.id,
+        prize: Math.round(auction.prizeAmountCents / 100),
+        status: auction.status,
+        bidCount: auction.bidCount,
+        leader:
+          userId !== null && auction.currentLeaderUserId === userId
+            ? "Você"
+            : auction.currentLeaderName,
+        startedAt: toIso(auction.startedAt),
+        deadlineAt: toIso(auction.deadlineAt),
+        usedBids,
+        bids: bidRecords.map((bid) => ({
+          number: bid.bidNumber,
+          leader:
+            userId !== null && bid.userId === userId ? "Você" : bid.bidderName,
+          createdAt: bid.createdAt.toISOString(),
+        })),
+        historyHasMore: auction.bidCount > bidRecords.length,
+      };
+    }),
+  );
+}
+
 export async function readState(userId: string) {
   return db.transaction(async (tx) => {
     const currentAuction = await getCurrentAuction(tx);
@@ -397,24 +452,34 @@ export async function readState(userId: string) {
       .from(userBidBalancesTable)
       .where(eq(userBidBalancesTable.userId, userId))
       .limit(1);
-    const auctions = await tx
+    const previousAuctions = await tx
       .select()
       .from(auctionsTable)
-      .orderBy(asc(auctionsTable.id));
+      .where(lt(auctionsTable.id, currentAuction.id))
+      .orderBy(desc(auctionsTable.id))
+      .limit(initialPreviousAuctionCount + 1);
+    const nextAuctions = await tx
+      .select()
+      .from(auctionsTable)
+      .where(gt(auctionsTable.id, currentAuction.id))
+      .orderBy(asc(auctionsTable.id))
+      .limit(initialNextAuctionCount + 1);
+    const previousWindow = previousAuctions
+      .slice(0, initialPreviousAuctionCount)
+      .reverse();
+    const nextWindow = nextAuctions.slice(0, initialNextAuctionCount);
+    const auctionRows = [...previousWindow, currentAuction, ...nextWindow];
+    const auctionStates = await mapAuctionStates(
+      tx,
+      auctionRows,
+      userId,
+      currentAuction.id,
+    );
     const packages = await tx
       .select()
       .from(bidPackagesTable)
       .where(eq(bidPackagesTable.isActive, true))
       .orderBy(asc(bidPackagesTable.sortOrder));
-    const [usedBidsResult] = await tx
-      .select({ value: count() })
-      .from(auctionBidsTable)
-      .where(
-        and(
-          eq(auctionBidsTable.auctionId, currentAuction.id),
-          eq(auctionBidsTable.userId, userId),
-        ),
-      );
     const prizeRecords = await tx
       .select({
         auctionId: auctionPrizesTable.auctionId,
@@ -430,42 +495,18 @@ export async function readState(userId: string) {
       .where(eq(auctionPrizesTable.userId, userId))
       .orderBy(asc(auctionPrizesTable.wonAt));
 
-    const auctionStates = [];
-    for (const auction of auctions) {
-      const bidRecords = await tx
-        .select()
-        .from(auctionBidsTable)
-        .where(eq(auctionBidsTable.auctionId, auction.id))
-        .orderBy(desc(auctionBidsTable.bidNumber))
-        .limit(historyPageSize);
-      auctionStates.push({
-        id: auction.id,
-        prize: Math.round(auction.prizeAmountCents / 100),
-        status: auction.status,
-        bidCount: auction.bidCount,
-        leader:
-          auction.currentLeaderUserId === userId
-            ? "Você"
-            : auction.currentLeaderName,
-        startedAt: toIso(auction.startedAt),
-        deadlineAt: toIso(auction.deadlineAt),
-        usedBids:
-          auction.id === currentAuction.id ? (usedBidsResult?.value ?? 0) : 0,
-        bids: bidRecords.map((bid) => ({
-          number: bid.bidNumber,
-          leader: bid.userId === userId ? "Você" : bid.bidderName,
-          createdAt: bid.createdAt.toISOString(),
-        })),
-        historyHasMore: auction.bidCount > bidRecords.length,
-      });
-    }
-
     return {
       balance: wallet?.balance ?? 0,
       currentAuctionId: currentAuction.id,
       serverTime: new Date().toISOString(),
       user: user ?? null,
       auctions: auctionStates,
+      auctionPagination: {
+        previousCursor: auctionRows[0]?.id ?? null,
+        nextCursor: auctionRows.at(-1)?.id ?? null,
+        hasPrevious: previousAuctions.length > initialPreviousAuctionCount,
+        hasNext: nextAuctions.length > initialNextAuctionCount,
+      },
       packages: packages.map((pack) => ({
         id: pack.id,
         bids: pack.baseBids,
@@ -481,6 +522,53 @@ export async function readState(userId: string) {
       })),
     };
   }, { isolationLevel: "repeatable read" });
+}
+
+export async function readAuctionPage(
+  userId: string | null,
+  direction: "previous" | "next",
+  cursor: number,
+  limit: number,
+) {
+  return db.transaction(async (tx) => {
+    const currentAuction = await getCurrentAuction(tx);
+    if (!currentAuction) {
+      throw new Error("Nenhum leilão está cadastrado.");
+    }
+
+    const rows = direction === "previous"
+      ? await tx
+        .select()
+        .from(auctionsTable)
+        .where(lt(auctionsTable.id, cursor))
+        .orderBy(desc(auctionsTable.id))
+        .limit(limit + 1)
+      : await tx
+        .select()
+        .from(auctionsTable)
+        .where(gt(auctionsTable.id, cursor))
+        .orderBy(asc(auctionsTable.id))
+        .limit(limit + 1);
+    const hasMore = rows.length > limit;
+    const pageRows = rows.slice(0, limit);
+    if (direction === "previous") pageRows.reverse();
+    const auctions = await mapAuctionStates(
+      tx,
+      pageRows,
+      userId,
+      currentAuction.id,
+    );
+    const nextCursor = direction === "previous"
+      ? pageRows[0]?.id
+      : pageRows.at(-1)?.id;
+
+    return {
+      auctions,
+      direction,
+      cursor: nextCursor ?? null,
+      hasMore,
+    };
+  });
 }
 
 export async function readPublicState() {
