@@ -37,11 +37,14 @@ button:disabled { cursor: default; }
   width: 100%;
   min-height: 100dvh;
   height: auto;
+  padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px));
   background: var(--lc-bg);
 }
 .lc-header {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
   flex: none;
-  z-index: 5;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -123,7 +126,7 @@ button:disabled { cursor: default; }
 .lc-bid-meta b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lc-bid-meta small, .lc-bid-time { color: var(--lc-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .lc-history-button { width: 100%; padding: 14px 8px; color: var(--lc-muted); font-size: 13px; font-weight: 700; }
-.lc-footer { flex: none; position: relative; z-index: 6; width: 100%; max-width: 480px; margin: 0 auto; padding: 12px 20px calc(16px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--lc-line); border-radius: var(--lc-radius-sheet); background: var(--lc-surface); box-shadow: var(--lc-shadow-footer); }
+.lc-footer { position: fixed; z-index: 6; right: 0; bottom: 0; left: 0; width: 100%; max-width: 480px; margin: 0 auto; padding: 12px 20px calc(16px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--lc-line); border-radius: var(--lc-radius-sheet); background: var(--lc-surface); box-shadow: var(--lc-shadow-footer); }
 .lc-footer p { margin: 0 0 10px; text-align: center; color: var(--lc-muted); font-size: 13px; }
 .lc-cta { display: flex; align-items: center; justify-content: center; gap: var(--lc-space-5); width: 100%; min-height: 64px; border-radius: var(--lc-radius-card); background: var(--lc-lime); color: var(--lc-on-lime); font: 800 20px var(--lc-display); transition: transform var(--lc-motion-fast); }
 .lc-cta:active:not(:disabled) { transform: scale(.98); }
