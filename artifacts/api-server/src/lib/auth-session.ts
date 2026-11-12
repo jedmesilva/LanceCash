@@ -5,6 +5,7 @@ import { db, userSessionsTable } from "@workspace/db";
 
 const cookieName = "lance_cash_session";
 const sessionLifetimeMs = 30 * 24 * 60 * 60 * 1000;
+const sessionTouchIntervalMs = 15 * 60 * 1000;
 
 function sessionKey(): string {
   const value = process.env.SESSION_SECRET;
@@ -38,9 +39,13 @@ export function clearAuthCookie(res: Response): void {
   res.clearCookie(cookieName, cookieOptions());
 }
 
-export async function createAuthSession(userId: string) {
+export function generateAuthSessionToken() {
   const token = randomBytes(32).toString("base64url");
-  const sessionId = hashToken(token);
+  return { token, sessionId: hashToken(token) };
+}
+
+export async function createAuthSession(userId: string) {
+  const { token, sessionId } = generateAuthSessionToken();
   await db.insert(userSessionsTable).values({ sessionId, userId });
   return { token, sessionId };
 }
@@ -51,6 +56,7 @@ export async function resolveAuthSession(
 ): Promise<{ sessionId: string; userId: string } | null> {
   const token: unknown = req.cookies?.[cookieName];
   if (typeof token !== "string" || token.length < 40 || token.length > 100) {
+    if (token !== undefined) clearAuthCookie(res);
     return null;
   }
 
@@ -60,6 +66,7 @@ export async function resolveAuthSession(
     .select({
       sessionId: userSessionsTable.sessionId,
       userId: userSessionsTable.userId,
+      lastSeenAt: userSessionsTable.lastSeenAt,
     })
     .from(userSessionsTable)
     .where(
@@ -75,10 +82,12 @@ export async function resolveAuthSession(
     return null;
   }
 
-  await db
-    .update(userSessionsTable)
-    .set({ lastSeenAt: new Date() })
-    .where(eq(userSessionsTable.sessionId, session.sessionId));
+  if (Date.now() - session.lastSeenAt.getTime() >= sessionTouchIntervalMs) {
+    await db
+      .update(userSessionsTable)
+      .set({ lastSeenAt: new Date() })
+      .where(eq(userSessionsTable.sessionId, session.sessionId));
+  }
 
   return session;
 }

@@ -2,17 +2,17 @@ import { Router, type IRouter } from "express";
 import {
   GetLanceCashAuctionBidsQueryParams,
   GetLanceCashAuctionBidsResponse,
-  GetLanceCashStateQueryParams,
   GetLanceCashStateResponse,
   PlaceLanceCashBidBody,
   PurchaseLancePackageBody,
-  RedeemLanceCashPrizeBody,
   RedeemLanceCashPrizeParams,
   UpdateLanceCashProfileBody,
 } from "@workspace/api-zod";
+import { requireAuth, resolveAuthSession } from "../lib/auth-session";
 import {
   placeBid,
   purchasePackage,
+  readPublicState,
   readOlderBids,
   readState,
   redeemPrize,
@@ -22,15 +22,11 @@ import {
 const router: IRouter = Router();
 
 router.get("/lance-cash/state", async (req, res): Promise<void> => {
-  const parsed = GetLanceCashStateQueryParams.safeParse(req.query);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Sessão inválida." });
-    return;
-  }
-
-  res.json(
-    GetLanceCashStateResponse.parse(await readState(parsed.data.sessionId)),
-  );
+  const session = await resolveAuthSession(req, res);
+  const state = session
+    ? await readState(session.userId)
+    : await readPublicState();
+  res.json(GetLanceCashStateResponse.parse(state));
 });
 
 router.get("/lance-cash/bids/history", async (req, res): Promise<void> => {
@@ -40,8 +36,9 @@ router.get("/lance-cash/bids/history", async (req, res): Promise<void> => {
     return;
   }
 
+  const session = await resolveAuthSession(req, res);
   const page = await readOlderBids(
-    parsed.data.sessionId,
+    session?.userId ?? null,
     parsed.data.auctionId,
     parsed.data.before,
   );
@@ -52,14 +49,17 @@ router.get("/lance-cash/bids/history", async (req, res): Promise<void> => {
   res.json(GetLanceCashAuctionBidsResponse.parse(page));
 });
 
-router.post("/lance-cash/bids", async (req, res): Promise<void> => {
+router.post("/lance-cash/bids", requireAuth, async (req, res): Promise<void> => {
   const parsed = PlaceLanceCashBidBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Dados do lance inválidos." });
     return;
   }
 
-  const result = await placeBid(parsed.data.sessionId, parsed.data.auctionId);
+  const result = await placeBid(
+    res.locals.authUserId as string,
+    parsed.data.auctionId,
+  );
   if (!("state" in result)) {
     res.status(400).json({ error: result.error });
     return;
@@ -69,6 +69,7 @@ router.post("/lance-cash/bids", async (req, res): Promise<void> => {
 
 router.post(
   "/lance-cash/packages/purchase",
+  requireAuth,
   async (req, res): Promise<void> => {
     const parsed = PurchaseLancePackageBody.safeParse(req.body);
     if (!parsed.success) {
@@ -77,7 +78,7 @@ router.post(
     }
 
     const result = await purchasePackage(
-      parsed.data.sessionId,
+      res.locals.authUserId as string,
       parsed.data.packageId,
       parsed.data.requestId,
     );
@@ -89,33 +90,40 @@ router.post(
   },
 );
 
-router.patch("/lance-cash/profile", async (req, res): Promise<void> => {
-  const parsed = UpdateLanceCashProfileBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Dados da conta inválidos." });
-    return;
-  }
+router.patch(
+  "/lance-cash/profile",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const parsed = UpdateLanceCashProfileBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Dados da conta inválidos." });
+      return;
+    }
 
-  const result = await updateProfile(parsed.data);
-  if (!("state" in result)) {
-    res.status(400).json({ error: result.error });
-    return;
-  }
-  res.json(GetLanceCashStateResponse.parse(result.state));
-});
+    const result = await updateProfile(
+      res.locals.authUserId as string,
+      parsed.data,
+    );
+    if (!("state" in result)) {
+      res.status(400).json({ error: result.error });
+      return;
+    }
+    res.json(GetLanceCashStateResponse.parse(result.state));
+  },
+);
 
 router.post(
   "/lance-cash/prizes/:auctionId/redeem",
+  requireAuth,
   async (req, res): Promise<void> => {
     const params = RedeemLanceCashPrizeParams.safeParse(req.params);
-    const body = RedeemLanceCashPrizeBody.safeParse(req.body);
-    if (!params.success || !body.success) {
+    if (!params.success) {
       res.status(400).json({ error: "Dados do resgate inválidos." });
       return;
     }
 
     const result = await redeemPrize(
-      body.data.sessionId,
+      res.locals.authUserId as string,
       params.data.auctionId,
     );
     if (!("state" in result)) {

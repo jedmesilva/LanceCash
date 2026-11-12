@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, Eye, EyeOff, LogIn, Plus, X, Zap } from 'lucide-react';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -7,10 +7,15 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import {
   getGetLanceCashAuctionBidsQueryKey,
+  getGetAuthMeQueryKey,
   getGetLanceCashStateQueryKey,
   useGetLanceCashAuctionBids,
+  useGetAuthMe,
   useGetLanceCashState,
   useHealthCheck,
+  usePostAuthLogin,
+  usePostAuthLogout,
+  usePostAuthRegister,
   usePlaceLanceCashBid,
   usePurchaseLancePackage,
   useRedeemLanceCashPrize,
@@ -33,24 +38,19 @@ const BRL0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL'
 const BRL2 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const NUMBER = new Intl.NumberFormat('pt-BR');
 
-function sessionIdentity() {
-  const key = 'lance-cash-session';
-  const fallback = () => `lance-cash-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  try {
-    let id = window.localStorage.getItem(key);
-    if (!id) {
-      id = window.crypto?.randomUUID?.() ?? fallback();
-      window.localStorage.setItem(key, id);
-    }
-    return id;
-  } catch {
-    return fallback();
-  }
+function apiErrorStatus(error: unknown): number | undefined {
+  if (typeof error !== 'object' || error === null || !('status' in error)) return undefined;
+  return typeof error.status === 'number' ? error.status : undefined;
 }
 
-function useLanceSession() {
-  const [sessionId] = useState(sessionIdentity);
-  return sessionId;
+function apiErrorMessage(error: unknown, fallback: string): string {
+  if (typeof error === 'object' && error !== null && 'data' in error) {
+    const data = error.data;
+    if (typeof data === 'object' && data !== null && 'error' in data && typeof data.error === 'string') {
+      return data.error;
+    }
+  }
+  return error instanceof Error ? error.message : fallback;
 }
 
 function LoadingView() {
@@ -66,10 +66,10 @@ function LoadingView() {
 }
 
 function LanceCash() {
-  const sessionId = useLanceSession();
   const queryClient = useQueryClient();
-  const params = useMemo(() => ({ sessionId }), [sessionId]);
-  const stateQuery = useGetLanceCashState(params, { query: { queryKey: getGetLanceCashStateQueryKey(params), refetchInterval: 3000 } });
+  const authQuery = useGetAuthMe({ query: { retry: false, refetchInterval: 60_000 } });
+  const stateQuery = useGetLanceCashState({ query: { refetchInterval: 3000 } });
+  const isAuthenticated = Boolean(authQuery.data?.user) && apiErrorStatus(authQuery.error) !== 401;
   useHealthCheck();
   const state = stateQuery.data as LanceCashState | undefined;
   const auctions = state?.auctions ?? [];
@@ -81,10 +81,9 @@ function LanceCash() {
   const [historyExtra, setHistoryExtra] = useState<Record<number, AuctionBid[]>>({});
   const [selectedPackageId, setSelectedPackageId] = useState('popular');
   const [toastText, setToastText] = useState('');
-  const [isDemoSession, setIsDemoSession] = useState(false);
   const [accountView, setAccountView] = useState<'main' | 'prizes' | 'profile'>('main');
   const [accountNotice, setAccountNotice] = useState('');
-  const [authMode, setAuthMode] = useState<'in' | 'up' | 'reset'>('in');
+  const [authMode, setAuthMode] = useState<'in' | 'up'>('in');
   const [authName, setAuthName] = useState('');
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
@@ -115,7 +114,6 @@ function LanceCash() {
   const visibleAuction = auctions[visibleIndex] ?? currentAuction;
   const historyParams = {
     auctionId: historyRequest?.auctionId ?? visibleAuction?.id ?? state?.currentAuctionId ?? 1,
-    sessionId,
     before: historyRequest?.before ?? 1,
   };
   const historyQuery = useGetLanceCashAuctionBids(historyParams, {
@@ -128,6 +126,9 @@ function LanceCash() {
   const packageMutation = usePurchaseLancePackage();
   const profileMutation = useUpdateLanceCashProfile();
   const redeemMutation = useRedeemLanceCashPrize();
+  const loginMutation = usePostAuthLogin();
+  const registerMutation = usePostAuthRegister();
+  const logoutMutation = usePostAuthLogout();
 
   useEffect(() => {
     const timer = window.setInterval(() => setClock(Date.now()), 250);
@@ -142,6 +143,19 @@ function LanceCash() {
     if (toastTimer) window.clearTimeout(toastTimer);
     if (scrollFrame.current !== null) window.cancelAnimationFrame(scrollFrame.current);
   }, [toastTimer]);
+
+  useEffect(() => {
+    if (apiErrorStatus(authQuery.error) !== 401) return;
+    accountDialogRef.current?.close();
+    queryClient.removeQueries({ queryKey: ['/api/lance-cash/bids/history'] });
+    void queryClient.invalidateQueries({ queryKey: getGetLanceCashStateQueryKey() });
+  }, [authQuery.error, queryClient]);
+
+  useEffect(() => {
+    setHistoryExtra({});
+    setHistoryRequest(null);
+    queryClient.removeQueries({ queryKey: ['/api/lance-cash/bids/history'] });
+  }, [isAuthenticated ? authQuery.data?.user.id : null, isAuthenticated, queryClient]);
 
   useEffect(() => {
     if (!state) return;
@@ -181,7 +195,7 @@ function LanceCash() {
   }, [historyQuery.data, historyRequest]);
 
   const patchState = (next: LanceCashState) => {
-    queryClient.setQueryData(getGetLanceCashStateQueryKey(params), next);
+    queryClient.setQueryData(getGetLanceCashStateQueryKey(), next);
   };
 
   const showToast = (message: string) => {
@@ -204,14 +218,14 @@ function LanceCash() {
   };
 
   const openPurchase = () => {
-    if (!isDemoSession) {
+    if (!isAuthenticated) {
       openAuth();
       return;
     }
     if (!purchaseDialogRef.current?.open) purchaseDialogRef.current?.showModal();
   };
   const openAccount = () => {
-    if (!isDemoSession) {
+    if (!isAuthenticated) {
       openAuth();
       return;
     }
@@ -237,33 +251,61 @@ function LanceCash() {
       showAuth();
     }
   };
-  const changeAuthMode = (mode: 'in' | 'up' | 'reset') => {
+  const changeAuthMode = (mode: 'in' | 'up') => {
     setAuthMode(mode);
     setAuthErrors({});
     setAuthNotice('');
     setAuthPassword('');
   };
-  const submitAuth = (event: FormEvent<HTMLFormElement>) => {
+  const submitAuth = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const email = authEmail.trim();
     const errors: Record<string, string> = {};
     if (authMode === 'up' && authName.trim().length < 2) errors.name = 'Informe seu nome.';
     if (!email) errors.email = 'Informe seu e-mail.';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) errors.email = 'Digite um e-mail válido.';
-    if (authMode !== 'reset' && !authPassword) errors.password = 'Informe sua senha.';
+    if (!authPassword) errors.password = 'Informe sua senha.';
     else if (authMode === 'up' && authPassword.length < 8) errors.password = 'Use pelo menos 8 caracteres.';
+    else if (authPassword.length > 200) errors.password = 'Use uma senha com até 200 caracteres.';
     setAuthErrors(errors);
     setAuthNotice('');
     if (Object.keys(errors).length) return;
-    setAuthNotice(authMode === 'reset'
-      ? 'A recuperação por e-mail ainda não está conectada a este protótipo.'
-      : 'A autenticação real ainda não está conectada. Use o modo de demonstração para acessar saldo e lances.');
+    try {
+      const result = authMode === 'up'
+        ? await registerMutation.mutateAsync({
+          data: { name: authName.trim(), email, password: authPassword },
+        })
+        : await loginMutation.mutateAsync({
+          data: { email, password: authPassword },
+        });
+      queryClient.setQueryData(getGetAuthMeQueryKey(), result);
+      queryClient.removeQueries({ queryKey: ['/api/lance-cash/bids/history'] });
+      await queryClient.invalidateQueries({ queryKey: getGetLanceCashStateQueryKey() });
+      authDialogRef.current?.close();
+      showToast(authMode === 'up' ? 'Sua conta foi criada.' : 'Você entrou na sua conta.');
+    } catch (error) {
+      setAuthNotice(apiErrorMessage(error, 'Não foi possível autenticar sua conta.'));
+    }
+  };
+  const signOut = async () => {
+    try {
+      await logoutMutation.mutateAsync();
+      queryClient.removeQueries({ queryKey: ['/api/lance-cash/bids/history'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getGetAuthMeQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getGetLanceCashStateQueryKey() }),
+      ]);
+      accountDialogRef.current?.close();
+      showToast('Você saiu da sua conta.');
+    } catch (error) {
+      showToast(apiErrorMessage(error, 'Não foi possível sair da conta.'));
+    }
   };
   const selectedPackage = state?.packages.find((item) => item.id === selectedPackageId) ?? state?.packages[0];
   const getDeadlineMs = (auction: LanceCashAuction) => auction.deadlineAt ? Date.parse(auction.deadlineAt) : 0;
 
   const placeBid = async () => {
-    if (!isDemoSession) {
+    if (!isAuthenticated) {
       openAuth();
       return;
     }
@@ -275,7 +317,7 @@ function LanceCash() {
       if (!targetAuction) return;
       try {
         const next = await bidMutation.mutateAsync({
-          data: { sessionId, auctionId: targetAuction.id },
+          data: { auctionId: targetAuction.id },
         });
         patchState(next);
         const nextIndex = next.auctions.findIndex((auction) => auction.id === next.currentAuctionId);
@@ -297,7 +339,7 @@ function LanceCash() {
       return;
     }
     try {
-      const next = await bidMutation.mutateAsync({ data: { sessionId, auctionId: currentAuction.id } });
+      const next = await bidMutation.mutateAsync({ data: { auctionId: currentAuction.id } });
       patchState(next);
       if (navigator.vibrate) navigator.vibrate(12);
       window.requestAnimationFrame(() => {
@@ -322,7 +364,6 @@ function LanceCash() {
       }
       const next = await packageMutation.mutateAsync({
         data: {
-          sessionId,
           packageId: selectedPackage.id,
           requestId: packageRequestRef.current.requestId,
         },
@@ -339,7 +380,7 @@ function LanceCash() {
   };
 
   const openProfile = () => {
-    if (!state) return;
+    if (!state?.user) return;
     setProfileName(state.user.name);
     setProfileEmail(state.user.email);
     setPasswordCurrent('');
@@ -369,7 +410,6 @@ function LanceCash() {
       return;
     }
     const update: ProfileUpdateInput = {
-      sessionId,
       name,
       email,
       ...(changingPassword ? {
@@ -382,6 +422,7 @@ function LanceCash() {
     try {
       const next = await profileMutation.mutateAsync({ data: update });
       patchState(next);
+      await queryClient.invalidateQueries({ queryKey: getGetAuthMeQueryKey() });
       setAccountNotice(changingPassword ? 'Dados e senha atualizados.' : 'Dados atualizados.');
       setAccountView('main');
     } catch (error) {
@@ -395,7 +436,7 @@ function LanceCash() {
     if (prize.redeemed || redeemingId !== null) return;
     setRedeemingId(prize.auctionId);
     try {
-      const next = await redeemMutation.mutateAsync({ auctionId: prize.auctionId, data: { sessionId } });
+      const next = await redeemMutation.mutateAsync({ auctionId: prize.auctionId });
       patchState(next);
       announce(`Prêmio de ${BRL2.format(prize.prize)} resgatado`);
     } catch (error) {
@@ -411,13 +452,19 @@ function LanceCash() {
   };
 
   const packages = state?.packages ?? [];
-  if (stateQuery.isLoading) return <LoadingView />;
-  if (stateQuery.isError || !state || !visibleAuction || !currentAuction) {
+  if (authQuery.isLoading || stateQuery.isLoading) return <LoadingView />;
+  if (
+    authQuery.isError && apiErrorStatus(authQuery.error) !== 401 ||
+    stateQuery.isError ||
+    !state ||
+    !visibleAuction ||
+    !currentAuction
+  ) {
     return (
       <main className="lc-error">
         <h1>Não foi possível carregar</h1>
-        <p>Não conseguimos abrir o Lance Cash agora.</p>
-        <button className="lc-cta" type="button" onClick={() => void stateQuery.refetch()} data-testid="button-retry-state">Tentar novamente</button>
+        <p>Não conseguimos carregar os leilões ou verificar sua conta agora.</p>
+        <button className="lc-cta" type="button" onClick={() => { void stateQuery.refetch(); void authQuery.refetch(); }} data-testid="button-retry-state">Tentar novamente</button>
       </main>
     );
   }
@@ -428,7 +475,7 @@ function LanceCash() {
   const currentLeaderIsUser = currentAuction?.leader === 'Você';
   const currentIsEnded = currentAuction?.status === 'ended';
   const isVisibleCurrent = visibleIndex === currentIndex;
-  const buttonDisabled = bidMutation.isPending || isDemoSession && isVisibleCurrent && currentAuction?.status === 'live' && currentLeaderIsUser;
+  const buttonDisabled = bidMutation.isPending || isAuthenticated && isVisibleCurrent && currentAuction?.status === 'live' && currentLeaderIsUser;
   const historyBusy = historyRequest !== null && historyQuery.isFetching;
 
   return (
@@ -436,7 +483,7 @@ function LanceCash() {
       <header className="lc-header">
         <div className="lc-brand"><LogoMark /> Lance Cash</div>
         <div className="lc-actions">
-          {isDemoSession ? (
+          {isAuthenticated ? (
             <>
               <button className="lc-balance" type="button" onClick={openPurchase} aria-label={`Você tem ${state.balance} ${state.balance === 1 ? 'lance' : 'lances'}. Comprar mais`} data-testid="button-buy-bids">
                 <Zap size={16} fill="currentColor" aria-hidden="true" />
@@ -444,7 +491,7 @@ function LanceCash() {
                 <span className="lc-plus"><Plus size={16} strokeWidth={3} /></span>
               </button>
               <button className="lc-avatar" type="button" onClick={openAccount} aria-label="Abrir minha conta" aria-haspopup="dialog" data-testid="button-open-account">
-                {state.user.name.trim()[0]?.toUpperCase() || 'V'}
+                {state.user?.name.trim()[0]?.toUpperCase() || 'V'}
               </button>
             </>
           ) : (
@@ -571,7 +618,7 @@ function LanceCash() {
         </p>
         <button className="lc-cta" type="button" onClick={() => void placeBid()} disabled={buttonDisabled} data-testid="button-place-bid">
           {bidMutation.isPending ? 'Enviando lance…'
-            : isVisibleCurrent ? !isDemoSession ? 'Entrar para participar' : currentIsEnded ? 'Próximo leilão' : currentLeaderIsUser ? 'Você deu o último lance' : state.balance ? 'Dar lance' : 'Comprar lances'
+            : isVisibleCurrent ? !isAuthenticated ? 'Entrar para participar' : currentIsEnded ? 'Próximo leilão' : currentLeaderIsUser ? 'Você deu o último lance' : state.balance ? 'Dar lance' : 'Comprar lances'
               : visibleIndex === currentIndex + 1 && currentIsEnded ? 'Começar este leilão'
                 : currentAuction.status === 'ended' ? 'Ir para o leilão mais recente' : 'Voltar ao leilão ao vivo'}
         </button>
@@ -628,8 +675,8 @@ function LanceCash() {
             <section className="lc-account-main">
               {accountNotice && <p className="lc-status" role="status">{accountNotice}</p>}
               <button className="lc-account-user" type="button" onClick={openProfile} aria-label="Editar dados da conta" data-testid="button-edit-profile">
-                <span className="lc-avatar big">{state.user.name.trim()[0]?.toUpperCase() || 'V'}</span>
-                <span className="lc-user-copy"><b>{state.user.name}</b><small>{state.user.email}</small></span>
+                <span className="lc-avatar big">{state.user?.name.trim()[0]?.toUpperCase() || 'V'}</span>
+                <span className="lc-user-copy"><b>{state.user?.name}</b><small>{state.user?.email}</small></span>
                 <span className="lc-edit">Editar</span>
               </button>
               <button className="lc-row-button" type="button" onClick={() => setAccountView('prizes')} data-testid="button-open-prizes">
@@ -637,7 +684,7 @@ function LanceCash() {
                 <span className="lc-user-copy"><b>Meus prêmios</b><small>{state.prizes.length ? `${state.prizes.length} ${state.prizes.length > 1 ? 'prêmios' : 'prêmio'}` : 'Nenhum prêmio ainda'}</small></span>
                 <ChevronRight size={18} strokeWidth={3} />
               </button>
-              <button className="lc-cta secondary" type="button" onClick={() => { setIsDemoSession(false); accountDialogRef.current?.close(); showToast('Você saiu da conta de demonstração.'); }} data-testid="button-simulated-signout">Sair da conta</button>
+              <button className="lc-cta secondary" type="button" onClick={() => void signOut()} disabled={logoutMutation.isPending} data-testid="button-sign-out">{logoutMutation.isPending ? 'Saindo…' : 'Sair da conta'}</button>
             </section>
           )}
 
@@ -706,15 +753,11 @@ function LanceCash() {
         <div className="lc-dialog-content">
           <div className="lc-dialog-heading">
             <div>
-              <h2 id="auth-title">{authMode === 'in' ? 'Entrar' : authMode === 'up' ? 'Criar conta' : 'Recuperar senha'}</h2>
+              <h2 id="auth-title">{authMode === 'in' ? 'Entrar' : 'Criar conta'}</h2>
             </div>
             <button className="lc-close" type="button" aria-label="Fechar" onClick={() => authDialogRef.current?.close()} data-testid="button-close-auth"><X size={16} strokeWidth={3} /></button>
           </div>
-          <p className="lc-auth-intro">
-            {authMode === 'reset'
-              ? 'Informe o e-mail associado à conta. A recuperação fica disponível quando o serviço de autenticação estiver conectado.'
-              : 'Entre para dar lances e acompanhar sua conta.'}
-          </p>
+          <p className="lc-auth-intro">Entre ou crie sua conta para dar lances e acompanhar seus prêmios.</p>
           <form className="lc-auth-form" noValidate onSubmit={submitAuth}>
             {authMode === 'up' && (
               <div className="lc-field">
@@ -728,35 +771,28 @@ function LanceCash() {
               <input id="auth-email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder="nome@email.com" value={authEmail} aria-invalid={Boolean(authErrors.email)} aria-describedby="auth-email-error" onChange={(event) => { setAuthEmail(event.target.value); setAuthErrors((old) => ({ ...old, email: '' })); }} data-testid="input-auth-email" />
               {authErrors.email && <p id="auth-email-error" className="lc-field-error">{authErrors.email}</p>}
             </div>
-            {authMode !== 'reset' && (
-              <div className="lc-field">
-                <label htmlFor="auth-password">Senha</label>
-                <div className="lc-auth-password">
-                  <input id="auth-password" type={authShowPassword ? 'text' : 'password'} autoComplete={authMode === 'up' ? 'new-password' : 'current-password'} placeholder={authMode === 'up' ? 'Crie uma senha' : 'Sua senha'} value={authPassword} aria-invalid={Boolean(authErrors.password)} aria-describedby="auth-password-error auth-password-hint" onChange={(event) => { setAuthPassword(event.target.value); setAuthErrors((old) => ({ ...old, password: '' })); }} data-testid="input-auth-password" />
-                  <button className="lc-auth-password-toggle" type="button" aria-label={authShowPassword ? 'Ocultar senha' : 'Mostrar senha'} aria-controls="auth-password" onClick={() => setAuthShowPassword((visible) => !visible)} data-testid="button-toggle-auth-password">
-                    {authShowPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-                {authErrors.password && <p id="auth-password-error" className="lc-field-error">{authErrors.password}</p>}
-                {authMode === 'up' && <p id="auth-password-hint" className="lc-auth-hint">Use pelo menos 8 caracteres.</p>}
+            <div className="lc-field">
+              <label htmlFor="auth-password">Senha</label>
+              <div className="lc-auth-password">
+                <input id="auth-password" type={authShowPassword ? 'text' : 'password'} autoComplete={authMode === 'up' ? 'new-password' : 'current-password'} placeholder={authMode === 'up' ? 'Crie uma senha' : 'Sua senha'} value={authPassword} aria-invalid={Boolean(authErrors.password)} aria-describedby="auth-password-error auth-password-hint" onChange={(event) => { setAuthPassword(event.target.value); setAuthErrors((old) => ({ ...old, password: '' })); }} data-testid="input-auth-password" />
+                <button className="lc-auth-password-toggle" type="button" aria-label={authShowPassword ? 'Ocultar senha' : 'Mostrar senha'} aria-controls="auth-password" onClick={() => setAuthShowPassword((visible) => !visible)} data-testid="button-toggle-auth-password">
+                  {authShowPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
-            )}
-            {authMode === 'in' && <button className="lc-auth-link lc-auth-forgot" type="button" onClick={() => changeAuthMode('reset')} data-testid="button-forgot-password">Esqueci minha senha</button>}
+              {authErrors.password && <p id="auth-password-error" className="lc-field-error">{authErrors.password}</p>}
+              {authMode === 'up' && <p id="auth-password-hint" className="lc-auth-hint">Use pelo menos 8 caracteres.</p>}
+            </div>
             {authNotice && <p className="lc-auth-notice" role="status" data-testid="status-auth-notice">{authNotice}</p>}
-            <button className="lc-cta lc-auth-submit" type="submit" data-testid="button-submit-auth">
-              {authMode === 'in' ? 'Entrar' : authMode === 'up' ? 'Criar conta' : 'Enviar link'}
+            <button className="lc-cta lc-auth-submit" type="submit" disabled={loginMutation.isPending || registerMutation.isPending} data-testid="button-submit-auth">
+              {loginMutation.isPending || registerMutation.isPending ? 'Aguarde…' : authMode === 'in' ? 'Entrar' : 'Criar conta'}
             </button>
           </form>
           <p className="lc-auth-switch">
-            {authMode === 'in' ? 'Não tem conta? ' : authMode === 'up' ? 'Já tem conta? ' : 'Lembrou a senha? '}
+            {authMode === 'in' ? 'Não tem conta? ' : 'Já tem conta? '}
             <button className="lc-auth-link" type="button" onClick={() => changeAuthMode(authMode === 'in' ? 'up' : 'in')} data-testid="button-switch-auth-mode">
               {authMode === 'in' ? 'Criar conta' : 'Entrar'}
             </button>
           </p>
-          <div className="lc-auth-demo">
-            <p>Sem autenticação real conectada. A conta de demonstração permite testar saldo e lances.</p>
-            <button type="button" onClick={() => { setIsDemoSession(true); authDialogRef.current?.close(); showToast('Conta de demonstração ativada.'); }} data-testid="button-continue-demo">Entrar no modo demonstração</button>
-          </div>
         </div>
       </dialog>
     </main>

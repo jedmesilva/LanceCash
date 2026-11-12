@@ -10,9 +10,14 @@ import {
   useQuery
 } from '@tanstack/react-query';
 import type {
+  DataTag,
+  DefinedInitialDataOptions,
+  DefinedUseQueryResult,
   MutationFunction,
+  QueryClient,
   QueryFunction,
   QueryKey,
+  UndefinedInitialDataOptions,
   UseMutationOptions,
   UseMutationResult,
   UseQueryOptions,
@@ -93,7 +98,7 @@ export const getHealthCheckQueryKey = () => {
     }
 
 
-export const getHealthCheckQueryOptions = <TData = Awaited<ReturnType<typeof healthCheck>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getHealthCheckQueryOptions = <TData = Awaited<ReturnType<typeof healthCheck>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -108,25 +113,49 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData> & { queryKey: QueryKey }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
 export type HealthCheckQueryResult = NonNullable<Awaited<ReturnType<typeof healthCheck>>>
 export type HealthCheckQueryError = ErrorType<unknown>
 
 
+export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof healthCheck>>,
+          TError,
+          Awaited<ReturnType<typeof healthCheck>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof healthCheck>>,
+          TError,
+          Awaited<ReturnType<typeof healthCheck>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Health check
  */
 
 export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getHealthCheckQueryOptions(options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
@@ -170,7 +199,7 @@ export const getGetAuthMeQueryKey = () => {
     }
 
 
-export const getGetAuthMeQueryOptions = <TData = Awaited<ReturnType<typeof getAuthMe>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAuthMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetAuthMeQueryOptions = <TData = Awaited<ReturnType<typeof getAuthMe>>, TError = ErrorType<void>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAuthMe>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -185,25 +214,49 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAuthMe>>, TError, TData> & { queryKey: QueryKey }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAuthMe>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
 export type GetAuthMeQueryResult = NonNullable<Awaited<ReturnType<typeof getAuthMe>>>
 export type GetAuthMeQueryError = ErrorType<void>
 
 
+export function useGetAuthMe<TData = Awaited<ReturnType<typeof getAuthMe>>, TError = ErrorType<void>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAuthMe>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAuthMe>>,
+          TError,
+          Awaited<ReturnType<typeof getAuthMe>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAuthMe<TData = Awaited<ReturnType<typeof getAuthMe>>, TError = ErrorType<void>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAuthMe>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAuthMe>>,
+          TError,
+          Awaited<ReturnType<typeof getAuthMe>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAuthMe<TData = Awaited<ReturnType<typeof getAuthMe>>, TError = ErrorType<void>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAuthMe>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Get the current authenticated account
  */
 
 export function useGetAuthMe<TData = Awaited<ReturnType<typeof getAuthMe>>, TError = ErrorType<void>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAuthMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAuthMe>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetAuthMeQueryOptions(options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
@@ -293,13 +346,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
  */
 export const usePostAuthRegister = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postAuthRegister>>, TError,PostAuthRegisterMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
+ , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof postAuthRegister>>,
         TError,
         PostAuthRegisterMutationVariables,
         TContext
       > => {
-      return useMutation(getPostAuthRegisterMutationOptions(options));
+      return useMutation(getPostAuthRegisterMutationOptions(options), queryClient);
     }
 
 export const getPostAuthLoginUrl = () => {
@@ -381,87 +434,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
  */
 export const usePostAuthLogin = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postAuthLogin>>, TError,PostAuthLoginMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
+ , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof postAuthLogin>>,
         TError,
         PostAuthLoginMutationVariables,
         TContext
       > => {
-      return useMutation(getPostAuthLoginMutationOptions(options));
-    }
-
-export const getPostAuthDemoUrl = () => {
-
-
-
-
-  return `/api/auth/demo`
-}
-
-/**
- * @summary Start a demonstration account session
- */
-export const postAuthDemo = async ( options?: Parameters<typeof customFetch>[1]): Promise<AuthResponse> => {
-
-  return customFetch<AuthResponse>(getPostAuthDemoUrl(),
-  {
-    ...options,
-    method: 'POST'
-
-
-  }
-);}
-
-
-
-
-
-export const getPostAuthDemoMutationKey = () => ['postAuthDemo'] as const;
-
-export const getPostAuthDemoMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postAuthDemo>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof postAuthDemo>>, TError,void, TContext> => {
-
-const mutationKey = getPostAuthDemoMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postAuthDemo>>, void> = () => {
-
-
-          return  postAuthDemo(requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type PostAuthDemoMutationResult = NonNullable<Awaited<ReturnType<typeof postAuthDemo>>>
-
-    export type PostAuthDemoMutationError = ErrorType<unknown>
-
-
-    /**
- * @summary Start a demonstration account session
- */
-export const usePostAuthDemo = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postAuthDemo>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof postAuthDemo>>,
-        TError,
-        void,
-        TContext
-      > => {
-      return useMutation(getPostAuthDemoMutationOptions(options));
+      return useMutation(getPostAuthLoginMutationOptions(options), queryClient);
     }
 
 export const getPostAuthLogoutUrl = () => {
@@ -529,13 +508,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
  */
 export const usePostAuthLogout = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postAuthLogout>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
+ , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof postAuthLogout>>,
         TError,
         void,
         TContext
       > => {
-      return useMutation(getPostAuthLogoutMutationOptions(options));
+      return useMutation(getPostAuthLogoutMutationOptions(options), queryClient);
     }
 
 export const getGetLanceCashStateUrl = () => {
@@ -547,7 +526,7 @@ export const getGetLanceCashStateUrl = () => {
 }
 
 /**
- * @summary Get the current Lance Cash state
+ * @summary Get public auction state and optional account details
  */
 export const getLanceCashState = async ( options?: Parameters<typeof customFetch>[1]): Promise<LanceCashState> => {
 
@@ -571,7 +550,7 @@ export const getGetLanceCashStateQueryKey = () => {
     }
 
 
-export const getGetLanceCashStateQueryOptions = <TData = Awaited<ReturnType<typeof getLanceCashState>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLanceCashState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetLanceCashStateQueryOptions = <TData = Awaited<ReturnType<typeof getLanceCashState>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLanceCashState>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -586,25 +565,49 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLanceCashState>>, TError, TData> & { queryKey: QueryKey }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLanceCashState>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
 export type GetLanceCashStateQueryResult = NonNullable<Awaited<ReturnType<typeof getLanceCashState>>>
 export type GetLanceCashStateQueryError = ErrorType<unknown>
 
 
+export function useGetLanceCashState<TData = Awaited<ReturnType<typeof getLanceCashState>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLanceCashState>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLanceCashState>>,
+          TError,
+          Awaited<ReturnType<typeof getLanceCashState>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetLanceCashState<TData = Awaited<ReturnType<typeof getLanceCashState>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLanceCashState>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLanceCashState>>,
+          TError,
+          Awaited<ReturnType<typeof getLanceCashState>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetLanceCashState<TData = Awaited<ReturnType<typeof getLanceCashState>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLanceCashState>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Get the current Lance Cash state
+ * @summary Get public auction state and optional account details
  */
 
 export function useGetLanceCashState<TData = Awaited<ReturnType<typeof getLanceCashState>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLanceCashState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLanceCashState>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetLanceCashStateQueryOptions(options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
@@ -655,7 +658,7 @@ export const getGetLanceCashAuctionBidsQueryKey = (params?: GetLanceCashAuctionB
     }
 
 
-export const getGetLanceCashAuctionBidsQueryOptions = <TData = Awaited<ReturnType<typeof getLanceCashAuctionBids>>, TError = ErrorType<void>>(params: GetLanceCashAuctionBidsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLanceCashAuctionBids>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetLanceCashAuctionBidsQueryOptions = <TData = Awaited<ReturnType<typeof getLanceCashAuctionBids>>, TError = ErrorType<void>>(params: GetLanceCashAuctionBidsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLanceCashAuctionBids>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -670,25 +673,49 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLanceCashAuctionBids>>, TError, TData> & { queryKey: QueryKey }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLanceCashAuctionBids>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
 export type GetLanceCashAuctionBidsQueryResult = NonNullable<Awaited<ReturnType<typeof getLanceCashAuctionBids>>>
 export type GetLanceCashAuctionBidsQueryError = ErrorType<void>
 
 
+export function useGetLanceCashAuctionBids<TData = Awaited<ReturnType<typeof getLanceCashAuctionBids>>, TError = ErrorType<void>>(
+ params: GetLanceCashAuctionBidsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLanceCashAuctionBids>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLanceCashAuctionBids>>,
+          TError,
+          Awaited<ReturnType<typeof getLanceCashAuctionBids>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetLanceCashAuctionBids<TData = Awaited<ReturnType<typeof getLanceCashAuctionBids>>, TError = ErrorType<void>>(
+ params: GetLanceCashAuctionBidsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLanceCashAuctionBids>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLanceCashAuctionBids>>,
+          TError,
+          Awaited<ReturnType<typeof getLanceCashAuctionBids>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetLanceCashAuctionBids<TData = Awaited<ReturnType<typeof getLanceCashAuctionBids>>, TError = ErrorType<void>>(
+ params: GetLanceCashAuctionBidsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLanceCashAuctionBids>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Get an older page of auction bids
  */
 
 export function useGetLanceCashAuctionBids<TData = Awaited<ReturnType<typeof getLanceCashAuctionBids>>, TError = ErrorType<void>>(
- params: GetLanceCashAuctionBidsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLanceCashAuctionBids>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+ params: GetLanceCashAuctionBidsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLanceCashAuctionBids>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetLanceCashAuctionBidsQueryOptions(params,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
@@ -778,13 +805,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
  */
 export const usePlaceLanceCashBid = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof placeLanceCashBid>>, TError,PlaceLanceCashBidMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
+ , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof placeLanceCashBid>>,
         TError,
         PlaceLanceCashBidMutationVariables,
         TContext
       > => {
-      return useMutation(getPlaceLanceCashBidMutationOptions(options));
+      return useMutation(getPlaceLanceCashBidMutationOptions(options), queryClient);
     }
 
 export const getPurchaseLancePackageUrl = () => {
@@ -866,13 +893,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
  */
 export const usePurchaseLancePackage = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof purchaseLancePackage>>, TError,PurchaseLancePackageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
+ , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof purchaseLancePackage>>,
         TError,
         PurchaseLancePackageMutationVariables,
         TContext
       > => {
-      return useMutation(getPurchaseLancePackageMutationOptions(options));
+      return useMutation(getPurchaseLancePackageMutationOptions(options), queryClient);
     }
 
 export const getUpdateLanceCashProfileUrl = () => {
@@ -884,7 +911,7 @@ export const getUpdateLanceCashProfileUrl = () => {
 }
 
 /**
- * @summary Update the simulated account profile
+ * @summary Update the authenticated account profile
  */
 export const updateLanceCashProfile = async (profileUpdateInput: ProfileUpdateInput, options?: Parameters<typeof customFetch>[1]): Promise<LanceCashState> => {
 
@@ -950,17 +977,17 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateLanceCashProfileMutationVariables = {data: BodyType<ProfileUpdateInput>}
 
     /**
- * @summary Update the simulated account profile
+ * @summary Update the authenticated account profile
  */
 export const useUpdateLanceCashProfile = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLanceCashProfile>>, TError,UpdateLanceCashProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
+ , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateLanceCashProfile>>,
         TError,
         UpdateLanceCashProfileMutationVariables,
         TContext
       > => {
-      return useMutation(getUpdateLanceCashProfileMutationOptions(options));
+      return useMutation(getUpdateLanceCashProfileMutationOptions(options), queryClient);
     }
 
 export const getRedeemLanceCashPrizeUrl = (auctionId: number,) => {
@@ -1028,12 +1055,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
  */
 export const useRedeemLanceCashPrize = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof redeemLanceCashPrize>>, TError,RedeemLanceCashPrizeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
+ , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof redeemLanceCashPrize>>,
         TError,
         RedeemLanceCashPrizeMutationVariables,
         TContext
       > => {
-      return useMutation(getRedeemLanceCashPrizeMutationOptions(options));
+      return useMutation(getRedeemLanceCashPrizeMutationOptions(options), queryClient);
     }
 

@@ -33,6 +33,8 @@ paths:
       operationId: getAuthMe
       tags: [auth]
       summary: Get the current authenticated account
+      security:
+        - cookieAuth: []
       responses:
         "200":
           description: Current authenticated account
@@ -86,23 +88,13 @@ paths:
           description: Invalid account details
         "401":
           description: Email or password is incorrect
-  /auth/demo:
-    post:
-      operationId: postAuthDemo
-      tags: [auth]
-      summary: Start a demonstration account session
-      responses:
-        "200":
-          description: Demonstration account signed in
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuthResponse"
   /auth/logout:
     post:
       operationId: postAuthLogout
       tags: [auth]
       summary: Sign out the current account
+      security:
+        - cookieAuth: []
       responses:
         "204":
           description: Account session ended
@@ -110,7 +102,7 @@ paths:
     get:
       operationId: getLanceCashState
       tags: [lance-cash]
-      summary: Get the current Lance Cash state
+      summary: Get public auction state and optional account details
       responses:
         "200":
           description: Current account and auction state
@@ -150,6 +142,8 @@ paths:
       operationId: placeLanceCashBid
       tags: [lance-cash]
       summary: Place a bid on the active auction
+      security:
+        - cookieAuth: []
       requestBody:
         required: true
         content:
@@ -165,11 +159,15 @@ paths:
                 $ref: "#/components/schemas/LanceCashState"
         "400":
           description: Bid cannot be placed
+        "401":
+          description: Authentication required
   /lance-cash/packages/purchase:
     post:
       operationId: purchaseLancePackage
       tags: [lance-cash]
       summary: Add a simulated lance package to the balance
+      security:
+        - cookieAuth: []
       requestBody:
         required: true
         content:
@@ -185,11 +183,15 @@ paths:
                 $ref: "#/components/schemas/LanceCashState"
         "400":
           description: Invalid package
+        "401":
+          description: Authentication required
   /lance-cash/profile:
     patch:
       operationId: updateLanceCashProfile
       tags: [lance-cash]
-      summary: Update the simulated account profile
+      summary: Update the authenticated account profile
+      security:
+        - cookieAuth: []
       requestBody:
         required: true
         content:
@@ -205,11 +207,15 @@ paths:
                 $ref: "#/components/schemas/LanceCashState"
         "400":
           description: Invalid profile data
+        "401":
+          description: Authentication required
   /lance-cash/prizes/{auctionId}/redeem:
     post:
       operationId: redeemLanceCashPrize
       tags: [lance-cash]
       summary: Mark a simulated prize as redeemed
+      security:
+        - cookieAuth: []
       parameters:
         - name: auctionId
           in: path
@@ -228,7 +234,14 @@ paths:
           description: Prize cannot be redeemed
         "404":
           description: Prize not found
+        "401":
+          description: Authentication required
 components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: lance_cash_session
   schemas:
     HealthStatus:
       type: object

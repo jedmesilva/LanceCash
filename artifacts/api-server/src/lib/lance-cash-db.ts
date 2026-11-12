@@ -19,7 +19,6 @@ import {
   prizeRedemptionsTable,
   userBidBalancesTable,
   userBidTransactionsTable,
-  userSessionsTable,
   usersTable,
 } from "@workspace/db";
 import { hashPassword, verifyPassword } from "./passwords";
@@ -199,67 +198,6 @@ export async function ensureDemoData(): Promise<string> {
   return demoUserId;
 }
 
-async function getSessionUserId(sessionId: string): Promise<string> {
-  const demoUserId = await ensureDemoData();
-  const userId = await db.transaction(async (tx) => {
-    const [existingSession] = await tx
-      .select({ userId: userSessionsTable.userId })
-      .from(userSessionsTable)
-      .where(eq(userSessionsTable.sessionId, sessionId))
-      .limit(1);
-
-    let resolvedUserId = existingSession?.userId;
-    if (!resolvedUserId) {
-      const [newSession] = await tx
-        .insert(userSessionsTable)
-        .values({ sessionId, userId: demoUserId })
-        .onConflictDoNothing()
-        .returning({ userId: userSessionsTable.userId });
-
-      if (newSession) {
-        resolvedUserId = newSession.userId;
-      } else {
-        const [racedSession] = await tx
-          .select({ userId: userSessionsTable.userId })
-          .from(userSessionsTable)
-          .where(eq(userSessionsTable.sessionId, sessionId))
-          .limit(1);
-        resolvedUserId = racedSession?.userId;
-      }
-    } else {
-      await tx
-        .update(userSessionsTable)
-        .set({ lastSeenAt: new Date() })
-        .where(eq(userSessionsTable.sessionId, sessionId));
-    }
-
-    if (!resolvedUserId) {
-      throw new Error("Não foi possível recuperar a sessão de demonstração.");
-    }
-
-    const [newBalance] = await tx
-      .insert(userBidBalancesTable)
-      .values({ userId: resolvedUserId, balance: 5 })
-      .onConflictDoNothing()
-      .returning({ balance: userBidBalancesTable.balance });
-
-    if (newBalance) {
-      await tx.insert(userBidTransactionsTable).values({
-        userId: resolvedUserId,
-        type: "initial_credit",
-        amount: newBalance.balance,
-        balanceAfter: newBalance.balance,
-        referenceType: "demo_grant",
-        referenceId: resolvedUserId,
-        description: "Saldo inicial da conta de demonstração",
-      });
-    }
-    return resolvedUserId;
-  });
-
-  return userId;
-}
-
 async function getCurrentAuction(tx: Transaction) {
   const [liveAuction] = await tx
     .select()
@@ -365,9 +303,16 @@ function toIso(value: Date | null): string | null {
   return value?.toISOString() ?? null;
 }
 
-export async function readState(sessionId: string) {
-  const userId = await getSessionUserId(sessionId);
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "23505"
+  );
+}
 
+export async function readState(userId: string) {
   return db.transaction(async (tx) => {
     await advanceCurrentAuction(tx);
     await ensureUpcomingAuction(tx);
@@ -453,7 +398,7 @@ export async function readState(sessionId: string) {
       balance: wallet?.balance ?? 0,
       currentAuctionId: currentAuction.id,
       serverTime: new Date().toISOString(),
-      user: user ?? { name: "Vitor Almeida", email: demoEmail },
+      user: user ?? null,
       auctions: auctionStates,
       packages: packages.map((pack) => ({
         id: pack.id,
@@ -472,10 +417,9 @@ export async function readState(sessionId: string) {
   });
 }
 
-const publicSessionId = "lance-cash-public-auctions";
-
 export async function readPublicState() {
-  const state = await readState(publicSessionId);
+  const demoUserId = await ensureDemoData();
+  const state = await readState(demoUserId);
   return {
     ...state,
     balance: 0,
@@ -494,11 +438,10 @@ export async function readPublicState() {
 }
 
 export async function readOlderBids(
-  sessionId: string,
+  userId: string | null,
   auctionId: number,
   before: number,
 ) {
-  const userId = await getSessionUserId(sessionId);
   return db.transaction(async (tx) => {
     await advanceCurrentAuction(tx);
     const [auction] = await tx
@@ -525,7 +468,7 @@ export async function readOlderBids(
     return {
       bids: bids.map((bid) => ({
         number: bid.bidNumber,
-        leader: bid.userId === userId ? "Você" : bid.bidderName,
+        leader: userId !== null && bid.userId === userId ? "Você" : bid.bidderName,
         createdAt: bid.createdAt.toISOString(),
       })),
       nextBefore: hasMore ? (lastBid?.bidNumber ?? null) : null,
@@ -534,8 +477,7 @@ export async function readOlderBids(
   });
 }
 
-export async function placeBid(sessionId: string, auctionId: number) {
-  const userId = await getSessionUserId(sessionId);
+export async function placeBid(userId: string, auctionId: number) {
   const result = await db.transaction(async (tx) => {
     await advanceCurrentAuction(tx);
     let current = await getCurrentAuction(tx);
@@ -628,15 +570,14 @@ export async function placeBid(sessionId: string, auctionId: number) {
   });
 
   if ("error" in result) return result;
-  return { state: await readState(sessionId) };
+  return { state: await readState(userId) };
 }
 
 export async function purchasePackage(
-  sessionId: string,
+  userId: string,
   packageId: string,
   requestId?: string,
 ) {
-  const userId = await getSessionUserId(sessionId);
   const idempotencyKey = requestId ?? randomUUID();
   const result = await db.transaction(async (tx) => {
     const [pack] = await tx
@@ -725,17 +666,20 @@ export async function purchasePackage(
   });
 
   if ("error" in result) return result;
-  return { state: await readState(sessionId) };
+  return { state: await readState(userId) };
 }
 
-export async function updateProfile(input: {
-  sessionId: string;
+export async function updateProfile(userId: string, input: {
   name: string;
   email: string;
   currentPassword?: string;
   newPassword?: string;
   confirmPassword?: string;
 }) {
+  if (input.name.trim().length < 2) {
+    return { error: "Informe um nome com pelo menos 2 caracteres." } as const;
+  }
+
   const changingPassword = Boolean(
     input.currentPassword || input.newPassword || input.confirmPassword,
   );
@@ -754,7 +698,6 @@ export async function updateProfile(input: {
     return { error: "As senhas não coincidem." } as const;
   }
 
-  const userId = await getSessionUserId(input.sessionId);
   if (changingPassword) {
     const [account] = await db
       .select({ passwordHash: usersTable.passwordHash })
@@ -763,7 +706,7 @@ export async function updateProfile(input: {
       .limit(1);
     if (!account?.passwordHash) {
       return {
-        error: "A conta de demonstração não possui senha para alterar.",
+        error: "Esta conta não possui uma senha para alterar.",
       } as const;
     }
     if (!(await verifyPassword(input.currentPassword ?? "", account.passwordHash))) {
@@ -781,26 +724,32 @@ export async function updateProfile(input: {
     return { error: "Este e-mail já está em uso." } as const;
   }
 
-  await db
-    .update(usersTable)
-    .set({
-      name: input.name.trim(),
-      email,
-      ...(changingPassword
-        ? { passwordHash: await hashPassword(input.newPassword ?? "") }
-        : {}),
-      updatedAt: new Date(),
-    })
-    .where(eq(usersTable.id, userId));
+  try {
+    await db
+      .update(usersTable)
+      .set({
+        name: input.name.trim(),
+        email,
+        ...(changingPassword
+          ? { passwordHash: await hashPassword(input.newPassword ?? "") }
+          : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(usersTable.id, userId));
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      return { error: "Este e-mail já está em uso." } as const;
+    }
+    throw error;
+  }
 
   return {
-    state: await readState(input.sessionId),
+    state: await readState(userId),
     passwordUpdated: changingPassword,
   };
 }
 
-export async function redeemPrize(sessionId: string, auctionId: number) {
-  const userId = await getSessionUserId(sessionId);
+export async function redeemPrize(userId: string, auctionId: number) {
   const result = await db.transaction(async (tx) => {
     await advanceCurrentAuction(tx);
     const [prize] = await tx
@@ -837,5 +786,5 @@ export async function redeemPrize(sessionId: string, auctionId: number) {
   });
 
   if ("error" in result) return result;
-  return { state: await readState(sessionId) };
+  return { state: await readState(userId) };
 }
