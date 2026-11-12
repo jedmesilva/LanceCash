@@ -331,7 +331,7 @@ function LanceCash() {
       incomingBidTimerRef.current = window.setTimeout(() => {
         setIncomingBid(null);
         incomingBidTimerRef.current = null;
-      }, 1200);
+      }, 2000);
     }
 
     lastBidCountByAuctionRef.current = new Map(
@@ -857,6 +857,7 @@ function LanceCash() {
                       {orderedBids.map((bid) => (
                         <BidRow
                           bid={bid}
+                          isIncoming={incomingBid?.auctionId === auction.id && incomingBid.bidNumber === bid.number}
                           key={`${auction.id}-${bid.number}`}
                         />
                       ))}

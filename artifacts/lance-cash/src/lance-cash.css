@@ -111,8 +111,9 @@ button:disabled { cursor: default; }
 .lc-section-title { display: flex; align-items: baseline; justify-content: space-between; margin: 30px 0 6px; font: 800 18px var(--lc-display); letter-spacing: -.02em; }
 .lc-section-title span { color: var(--lc-muted); font: 600 14px var(--lc-body); font-variant-numeric: tabular-nums; }
 .lc-bid-list { flex: 1; min-height: 0; margin: 0; padding: 0; overflow-y: auto; overflow-anchor: none; overscroll-behavior-y: contain; scrollbar-gutter: stable; list-style: none; }
-.lc-bid-row { display: flex; align-items: center; gap: 12px; padding: 12px 8px; border-bottom: 1px solid var(--lc-line); }
+.lc-bid-row { display: flex; align-items: center; gap: 12px; padding: 12px 8px; border-bottom: 1px solid var(--lc-line); transition: background-color .35s ease-out; }
 .lc-bid-row.is-mine { background: color-mix(in srgb, var(--lc-lime) 28%, transparent); }
+.lc-bid-row.is-incoming:not(.is-mine) { background-color: color-mix(in srgb, var(--lc-lime) 42%, transparent); }
 .lc-bid-row.is-footer { justify-content: center; border: 0; color: var(--lc-muted); font-size: 13px; }
 .lc-bid-initial { display: grid; flex: none; place-items: center; width: 38px; height: 38px; border-radius: var(--lc-radius-circle); color: #0F1208; font: 800 15px var(--lc-body); font-style: normal; }
 .lc-bid-meta { flex: 1; min-width: 0; }

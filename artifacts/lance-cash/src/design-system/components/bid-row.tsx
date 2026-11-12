@@ -10,7 +10,13 @@ const colors = [
   'var(--lc-bid-swatch-5)',
 ];
 
-export const BidRow = memo(function BidRow({ bid }: { bid: AuctionBid }) {
+export const BidRow = memo(function BidRow({
+  bid,
+  isIncoming = false,
+}: {
+  bid: AuctionBid;
+  isIncoming?: boolean;
+}) {
   const isMine = bid.leader === 'Você';
   const colorIndex = [...bid.leader].reduce(
     (total, letter) => total + letter.charCodeAt(0),
@@ -19,7 +25,7 @@ export const BidRow = memo(function BidRow({ bid }: { bid: AuctionBid }) {
 
   return (
     <li
-      className={`lc-bid-row${isMine ? ' is-mine' : ''}`}
+      className={`lc-bid-row${isMine ? ' is-mine' : ''}${isIncoming && !isMine ? ' is-incoming' : ''}`}
       data-testid={`row-bid-${bid.number}`}
       data-bid-number={bid.number}
     >
