@@ -1,4 +1,5 @@
 import type { AuctionBid } from '@workspace/api-client-react';
+import { motion } from 'framer-motion';
 
 const number = new Intl.NumberFormat('pt-BR');
 const colors = [
@@ -17,9 +18,17 @@ export function BidRow({ bid, fresh = false }: { bid: AuctionBid; fresh?: boolea
   ) % colors.length;
 
   return (
-    <li
+    <motion.li
       className={`lc-bid-row${isMine ? ' is-mine' : ''}${fresh ? ' is-new' : ''}`}
       data-testid={`row-bid-${bid.number}`}
+      layout="position"
+      initial={false}
+      animate={fresh ? { opacity: [0, 1], y: [-14, 0] } : { opacity: 1, y: 0 }}
+      transition={{
+        layout: { duration: 0.28, ease: 'easeOut' },
+        opacity: { duration: 0.24, ease: 'easeOut' },
+        y: { duration: 0.28, ease: 'easeOut' },
+      }}
     >
       <i
         className="lc-bid-initial"
@@ -35,6 +44,6 @@ export function BidRow({ bid, fresh = false }: { bid: AuctionBid; fresh?: boolea
       <time className="lc-bid-time" dateTime={bid.createdAt}>
         {new Date(bid.createdAt).toLocaleTimeString('pt-BR')}
       </time>
-    </li>
+    </motion.li>
   );
 }

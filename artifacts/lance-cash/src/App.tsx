@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, Eye, EyeOff, LogIn, Plus, X, Zap } from 'lucide-react';
+import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -140,6 +141,7 @@ function LanceCash() {
   const [historyExtra, setHistoryExtra] = useState<Record<number, AuctionBid[]>>({});
   const [selectedPackageId, setSelectedPackageId] = useState('popular');
   const [toastText, setToastText] = useState('');
+  const [incomingBid, setIncomingBid] = useState<{ auctionId: number; bidNumber: number } | null>(null);
   const [accountView, setAccountView] = useState<'main' | 'prizes' | 'profile'>('main');
   const [accountNotice, setAccountNotice] = useState('');
   const [authMode, setAuthMode] = useState<'in' | 'up'>('in');
@@ -168,6 +170,8 @@ function LanceCash() {
   const serverOffsetRef = useRef(0);
   const initializedAuctionRef = useRef<number | null>(null);
   const packageRequestRef = useRef<{ packageId: string; requestId: string } | null>(null);
+  const lastBidCountByAuctionRef = useRef<Map<number, number> | null>(null);
+  const incomingBidTimerRef = useRef<number | null>(null);
 
   const visibleAuction = auctions[visibleIndex] ?? currentAuction;
   const historyParams = {
@@ -197,10 +201,40 @@ function LanceCash() {
     if (state?.serverTime) serverOffsetRef.current = Date.parse(state.serverTime) - Date.now();
   }, [state?.serverTime]);
 
+  useEffect(() => {
+    if (!state) return;
+
+    const previousCounts = lastBidCountByAuctionRef.current;
+    const activeAuction = state.auctions.find(
+      (auction) => auction.id === state.currentAuctionId && auction.status === 'live',
+    );
+    const previousCount = activeAuction ? previousCounts?.get(activeAuction.id) : undefined;
+
+    if (activeAuction && previousCount !== undefined && activeAuction.bidCount > previousCount) {
+      setIncomingBid({ auctionId: activeAuction.id, bidNumber: activeAuction.bidCount });
+      if (incomingBidTimerRef.current !== null) window.clearTimeout(incomingBidTimerRef.current);
+      incomingBidTimerRef.current = window.setTimeout(() => {
+        setIncomingBid(null);
+        incomingBidTimerRef.current = null;
+      }, 1200);
+    }
+
+    lastBidCountByAuctionRef.current = new Map(
+      state.auctions.map((auction) => [
+        auction.id,
+        Math.max(previousCounts?.get(auction.id) ?? auction.bidCount, auction.bidCount),
+      ]),
+    );
+  }, [state?.auctions, state?.currentAuctionId]);
+
   useEffect(() => () => {
     if (toastTimer) window.clearTimeout(toastTimer);
     if (scrollFrame.current !== null) window.cancelAnimationFrame(scrollFrame.current);
   }, [toastTimer]);
+
+  useEffect(() => () => {
+    if (incomingBidTimerRef.current !== null) window.clearTimeout(incomingBidTimerRef.current);
+  }, []);
 
   useEffect(() => {
     if (apiErrorStatus(authQuery.error) !== 401) return;
@@ -597,6 +631,11 @@ function LanceCash() {
             : 0;
           const auctionSeconds = Math.ceil(remainingMs / 1000);
           const ringProgress = Math.min(100, (remainingMs / 15_000) * 100);
+          const isIncomingBidVisible = isVisibleCurrent
+            && index === currentIndex
+            && incomingBid?.auctionId === auction.id
+            && incomingBid.bidNumber === auction.bidCount;
+          const leaderText = upcoming ? 'Em breve' : mine ? ended ? 'Você ganhou!' : 'Você' : auction.leader;
           return (
             <section
               className="lc-slide"
@@ -621,7 +660,7 @@ function LanceCash() {
                 <h1 className="lc-prize" aria-label={`Prêmio de ${BRL2.format(auction.prize)} em dinheiro`}>
                   <small>R$</small>{prizeFormatted.slice(0, -3)}<small className="decimal">{prizeFormatted.slice(-3)}</small>
                 </h1>
-                <section className={`lc-current${ended ? ' is-ended' : mine && !upcoming ? ' is-mine' : ''}${isActive && auctionSeconds < 5 ? ' is-low' : ''}`} aria-label="Lance atual" data-testid={`status-auction-${auction.id}`}>
+                <section className={`lc-current${ended ? ' is-ended' : mine && !upcoming ? ' is-mine' : ''}${isActive && auctionSeconds < 5 ? ' is-low' : ''}${isIncomingBidVisible ? ' is-new-bid' : ''}`} aria-label="Lance atual" data-testid={`status-auction-${auction.id}`}>
                   <div className="lc-ring">
                     <svg viewBox="0 0 40 40" aria-hidden="true">
                       <circle className="ring-bg" cx="20" cy="20" r="17" />
@@ -636,8 +675,34 @@ function LanceCash() {
                     )}
                   </div>
                   <div className="lc-current-copy">
-                    <div className="lc-kicker">{upcoming ? `Leilão #${auction.id}` : `${ended ? 'Leilão encerrado' : 'Lance atual'} #${NUMBER.format(auction.bidCount)}`}</div>
-                    <div className="lc-leader">{upcoming ? 'Em breve' : mine ? ended ? 'Você ganhou!' : 'Você' : auction.leader}</div>
+                    <div className="lc-kicker lc-kicker-roll">
+                      <AnimatePresence initial={false} mode="wait">
+                        <motion.span
+                          className="lc-kicker-value"
+                          key={`${auction.id}-${auction.status}-${auction.bidCount}`}
+                          initial={{ y: 8, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          exit={{ y: -8, opacity: 0 }}
+                          transition={{ duration: 0.2, ease: 'easeOut' }}
+                        >
+                          {upcoming ? `Leilão #${auction.id}` : `${ended ? 'Leilão encerrado' : 'Lance atual'} #${NUMBER.format(auction.bidCount)}`}
+                        </motion.span>
+                      </AnimatePresence>
+                    </div>
+                    <div className="lc-leader lc-leader-roll">
+                      <AnimatePresence initial={false} mode="wait">
+                        <motion.span
+                          className="lc-leader-value"
+                          key={`${auction.id}-${auction.status}-${leaderText}`}
+                          initial={{ y: '100%', opacity: 0, scale: 0.98 }}
+                          animate={{ y: 0, opacity: 1, scale: 1 }}
+                          exit={{ y: '-100%', opacity: 0, scale: 0.98 }}
+                          transition={{ duration: 0.22, ease: 'easeOut' }}
+                        >
+                          {leaderText}
+                        </motion.span>
+                      </AnimatePresence>
+                    </div>
                     <div className="lc-subline">
                       {upcoming ? 'Começa quando o leilão anterior encerrar' : ended
                         ? mine ? `Você levou os ${BRL2.format(auction.prize)}` : `Levou os ${BRL2.format(auction.prize)}`
@@ -649,7 +714,13 @@ function LanceCash() {
                 <ol className="lc-bid-list">
                   {upcoming
                     ? <li className="lc-bid-row is-footer">Os lances aparecem aqui quando o leilão começar</li>
-                    : orderedBids.map((bid) => <BidRow bid={bid} key={`${auction.id}-${bid.number}`} />)}
+                    : orderedBids.map((bid) => (
+                      <BidRow
+                        bid={bid}
+                        fresh={isIncomingBidVisible && incomingBid?.bidNumber === bid.number}
+                        key={`${auction.id}-${bid.number}`}
+                      />
+                    ))}
                   {!upcoming && (orderedBids.length >= auction.bidCount || !orderedBids.length) && (
                     <li className="lc-bid-row is-footer">Início do leilão</li>
                   )}
@@ -870,14 +941,16 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <MotionConfig reducedMotion="user">
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+            <Router />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </MotionConfig>
   );
 }
 
