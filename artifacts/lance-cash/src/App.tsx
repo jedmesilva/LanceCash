@@ -1401,7 +1401,7 @@ function LanceCash() {
       <dialog className="lc-dialog" ref={purchaseDialogRef} aria-labelledby="purchase-title" onClick={(event) => { if (event.target === purchaseDialogRef.current) purchaseDialogRef.current?.close(); }}>
         <div className="lc-dialog-content">
           <div className="lc-dialog-heading">
-            <div><h2 id="purchase-title">Comprar lances</h2><p>{state.balance ? 'Cada lance que você dá usa 1 do seu saldo.' : 'Seu saldo acabou. Escolha um pacote para continuar.'}</p></div>
+            <div><h2 id="purchase-title">Comprar lances</h2><p>{state.balance ? 'Obtenha lances para disputar prêmios nos leilões.' : 'Seu saldo acabou. Escolha um pacote para continuar.'}</p></div>
             <button className="lc-close" type="button" aria-label="Fechar" onClick={() => purchaseDialogRef.current?.close()} data-testid="button-close-purchase"><X size={16} strokeWidth={3} /></button>
           </div>
           <div className="lc-package-list">
@@ -1428,7 +1428,7 @@ function LanceCash() {
           <button className="lc-cta lc-payment-button" type="button" disabled={!selectedPackage || packageMutation.isPending} onClick={() => void purchasePackage()} data-testid="button-simulated-pix">
             {packageMutation.isPending ? 'Confirmando Pix…' : selectedPackage ? `Pagar ${BRL0.format(selectedPackage.price)} com Pix` : 'Escolha um pacote'}
           </button>
-          <p className="lc-note">Pix simulado neste protótipo. Lances usados não são reembolsados.</p>
+          <p className="lc-note">Cada lance consome 1 unidade do seu saldo. Neste protótipo, o Pix é simulado; lances usados não são reembolsados.</p>
         </div>
       </dialog>
 
