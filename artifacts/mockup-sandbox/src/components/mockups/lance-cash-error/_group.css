@@ -1,0 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --lc-bg: #fff;
+  --lc-surface: #fff;
+  --lc-line: #DADDD0;
+  --lc-text: #0F1208;
+  --lc-muted: #5B6155;
+  --lc-lime: #D4FF4F;
+  --lc-on-lime: #0B0C10;
+  --lc-green: #2F5A00;
+  --lc-alert: #C2381A;
+  --lc-shadow: rgba(15, 18, 8, .08);
+  --lc-display: 'Bricolage Grotesque', Inter, system-ui, sans-serif;
+  --lc-body: Inter, system-ui, -apple-system, sans-serif;
+  --lc-radius-card: 20px;
+  --lc-radius-feature: 24px;
+  --lc-radius-circle: 50%;
+  --lc-space-5: 12px;
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--lc-bg);
+  color: var(--lc-text);
+  font: 500 15px/1.4 var(--lc-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  color: inherit;
+  font: inherit;
+}

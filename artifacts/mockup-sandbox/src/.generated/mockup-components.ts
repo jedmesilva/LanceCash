@@ -3,6 +3,8 @@ type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
 export const modules: ModuleMap = {
   "./components/mockups/lance-cash-bid-footer/Current.tsx": () => import("../components/mockups/lance-cash-bid-footer/Current.tsx"),
   "./components/mockups/lance-cash-bid-footer/FloatingDesktop.tsx": () => import("../components/mockups/lance-cash-bid-footer/FloatingDesktop.tsx"),
+  "./components/mockups/lance-cash-error/Current.tsx": () => import("../components/mockups/lance-cash-error/Current.tsx"),
+  "./components/mockups/lance-cash-error/Refined.tsx": () => import("../components/mockups/lance-cash-error/Refined.tsx"),
   "./components/mockups/lance-cash-modals/Current.tsx": () => import("../components/mockups/lance-cash-modals/Current.tsx"),
   "./components/mockups/lance-cash-modals/Desktop.tsx": () => import("../components/mockups/lance-cash-modals/Desktop.tsx"),
   "./components/mockups/lance-cash-skeleton/Aligned.tsx": () => import("../components/mockups/lance-cash-skeleton/Aligned.tsx"),

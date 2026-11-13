@@ -1,0 +1,30 @@
+.lce-current .lc-error {
+  width: 100%;
+  max-width: 480px;
+  margin: auto;
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.lce-current .lc-error h1 {
+  margin: 0;
+  font: 800 26px var(--lc-display);
+}
+
+.lce-current .lc-error p {
+  color: var(--lc-muted);
+}
+
+.lce-current .lc-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--lc-space-5);
+  width: 100%;
+  min-height: 64px;
+  border: 0;
+  border-radius: var(--lc-radius-card);
+  background: var(--lc-lime);
+  color: var(--lc-on-lime);
+  font: 800 20px var(--lc-display);
+}

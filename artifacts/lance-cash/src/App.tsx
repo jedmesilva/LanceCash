@@ -1,6 +1,6 @@
 import { memo, type FormEvent, type MutableRefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, Eye, EyeOff, Loader2, LockKeyhole, LogIn, LogOut, Pencil, Plus, X, Zap } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Check, ChevronLeft, ChevronRight, Eye, EyeOff, Loader2, LockKeyhole, LogIn, LogOut, Pencil, Plus, RefreshCw, ShieldCheck, X, Zap } from 'lucide-react';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
@@ -1127,11 +1127,30 @@ function LanceCash() {
     !visibleAuction ||
     !currentAuction
   ) {
+    const isRetrying = authQuery.isFetching || stateQuery.isFetching;
     return (
-      <main className="lc-error">
-        <h1>Não foi possível carregar</h1>
-        <p>Não conseguimos carregar os leilões ou verificar sua conta agora.</p>
-        <button className="lc-cta" type="button" onClick={() => { void stateQuery.refetch(); void authQuery.refetch(); }} data-testid="button-retry-state">Tentar novamente</button>
+      <main className="lc-error-page" role="alert" aria-labelledby="lc-error-title" aria-busy={isRetrying}>
+        <header className="lc-error-brand">
+          <LogoMark />
+          <span>Lance Cash</span>
+        </header>
+        <section className="lc-error-content">
+          <div className="lc-error-card">
+            <span className="lc-error-icon" aria-hidden="true"><AlertCircle size={28} strokeWidth={1.8} /></span>
+            <p className="lc-error-eyebrow">Instabilidade temporária</p>
+            <h1 id="lc-error-title">Não conseguimos carregar esta tela</h1>
+            <p className="lc-error-description">Os leilões ou a verificação da conta falharam. Tente novamente em instantes.</p>
+            <button className="lc-cta lc-error-retry" type="button" disabled={isRetrying} onClick={() => { void stateQuery.refetch(); void authQuery.refetch(); }} data-testid="button-retry-state">
+              {isRetrying ? <Loader2 className="lc-sync-spinner" size={19} aria-hidden="true" /> : <RefreshCw size={19} strokeWidth={2.4} aria-hidden="true" />}
+              {isRetrying ? 'Tentando novamente…' : 'Tentar novamente'}
+            </button>
+            <p className="lc-error-assurance">
+              <ShieldCheck size={16} aria-hidden="true" />
+              <span>Seu saldo e seus lances continuam protegidos.</span>
+            </p>
+          </div>
+        </section>
+        <p className="lc-error-footer">Lance Cash · Leilões ao vivo</p>
       </main>
     );
   }
