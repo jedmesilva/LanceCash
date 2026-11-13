@@ -1,8 +1,10 @@
 import express, { type Express } from "express";
 import cookieParser from "cookie-parser";
+import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { isConfiguredOrigin } from "./lib/origin";
 
 const app: Express = express();
 
@@ -25,6 +27,14 @@ app.use(
         };
       },
     },
+  }),
+);
+app.use(
+  cors({
+    origin(origin, callback) {
+      callback(null, isConfiguredOrigin(origin) ? origin : false);
+    },
+    credentials: true,
   }),
 );
 app.use(cookieParser());

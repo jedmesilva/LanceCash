@@ -57,7 +57,10 @@ export function useAuctionRealtime(onUpdate: (event: AuctionRealtimeUpdate) => v
     const connect = () => {
       if (!active || !navigator.onLine) return;
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const nextSocket = new WebSocket(`${protocol}//${window.location.host}/ws`);
+      const socketUrl =
+        import.meta.env.VITE_AUCTION_WS_URL?.trim() ||
+        `${protocol}//${window.location.host}/ws`;
+      const nextSocket = new WebSocket(socketUrl);
       socket = nextSocket;
 
       nextSocket.addEventListener("open", () => {

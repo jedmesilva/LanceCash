@@ -2,6 +2,7 @@ import type { IncomingMessage, Server } from "node:http";
 import type { Duplex } from "node:stream";
 import WebSocket, { WebSocketServer } from "ws";
 import { logger } from "./logger";
+import { isTrustedOrigin } from "./origin";
 
 export type AuctionRealtimeUpdate = {
   type: "auction:update";
@@ -22,22 +23,6 @@ export type AuctionRealtimeUpdate = {
 };
 
 let activeWebSocketServer: WebSocketServer | null = null;
-
-function isSameOrigin(request: IncomingMessage): boolean {
-  const origin = request.headers.origin;
-  const forwardedHost = request.headers["x-forwarded-host"];
-  const hosts = [
-    request.headers.host,
-    Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost?.split(",")[0],
-  ].filter((host): host is string => Boolean(host)).map((host) => host.trim().toLowerCase());
-  if (!origin || !hosts.length) return false;
-
-  try {
-    return hosts.includes(new URL(origin).host.toLowerCase());
-  } catch {
-    return false;
-  }
-}
 
 export function attachAuctionRealtime(server: Server): () => void {
   const webSocketServer = new WebSocketServer({
@@ -83,7 +68,7 @@ export function attachAuctionRealtime(server: Server): () => void {
       return;
     }
 
-    if (pathname !== "/ws" || !isSameOrigin(request)) {
+    if (pathname !== "/ws" || !isTrustedOrigin(request)) {
       socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
       socket.destroy();
       return;
