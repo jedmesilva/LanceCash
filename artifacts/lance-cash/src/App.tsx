@@ -1248,6 +1248,13 @@ function LanceCash() {
           const leaderText = upcoming ? 'Em breve'
             : isVerifyingAuction ? 'Verificando resultado…'
               : mine ? ended ? 'Você ganhou!' : 'Você' : auction.leader;
+          const kickerText = upcoming
+            ? `Leilão #${auction.id}`
+            : ended
+              ? auction.bidCount > 0 && auction.leader
+                ? `Lance vencedor #${NUMBER.format(auction.bidCount)}`
+                : 'Leilão encerrado'
+              : `Lance atual #${NUMBER.format(auction.bidCount)}`;
           return (
             <section
               className="lc-slide"
@@ -1281,7 +1288,7 @@ function LanceCash() {
                           exit={{ y: -8, opacity: 0 }}
                           transition={{ duration: 0.2, ease: 'easeOut' }}
                         >
-                          {upcoming ? `Leilão #${auction.id}` : `${ended ? 'Leilão encerrado' : 'Lance atual'} #${NUMBER.format(auction.bidCount)}`}
+                          {kickerText}
                         </motion.span>
                       </AnimatePresence>
                     </div>
