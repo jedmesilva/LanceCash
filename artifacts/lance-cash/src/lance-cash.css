@@ -215,11 +215,33 @@ button:disabled { cursor: default; }
 .lc-auth-demo { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--lc-line); text-align: center; }
 .lc-auth-demo p { margin: 0 0 8px; color: var(--lc-muted); font-size: 13px; }
 .lc-auth-demo button { padding: 4px 0; color: var(--lc-text); font-size: 14px; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
-.lc-account-user { display: flex; align-items: center; gap: 14px; width: 100%; margin-top: 18px; padding: 0 0 18px; border-bottom: 1px solid var(--lc-line); text-align: left; }
+.lc-account-dialog .lc-dialog-content { padding: 10px 16px calc(16px + env(safe-area-inset-bottom, 0px)); }
+.lc-account-dialog .lc-dialog-header-actions { align-items: center; height: 48px; margin-bottom: 8px; }
+.lc-account-dialog .lc-dialog-header-actions h2 { font: 700 17px/1.2 var(--lc-body); letter-spacing: -.01em; }
+.lc-account-dialog .lc-close { width: 36px; height: 36px; }
+.lc-account-main { display: flex; flex-direction: column; gap: 12px; }
+.lc-account-card { overflow: hidden; border: 1px solid var(--lc-line); border-radius: 20px; background: var(--lc-surface); }
+.lc-account-identity { display: flex; align-items: center; gap: 14px; padding: 16px; }
+.lc-account-avatar { display: grid; flex: none; place-items: center; width: 56px; height: 56px; border-radius: var(--lc-radius-circle); background: var(--lc-text); color: var(--lc-bg); font-size: 24px; font-weight: 800; }
+.lc-account-identity-copy { flex: 1; min-width: 0; }
+.lc-account-identity-copy strong { display: block; overflow: hidden; font: 800 18px var(--lc-display); letter-spacing: -.01em; text-overflow: ellipsis; white-space: nowrap; }
+.lc-account-identity-copy small { display: block; overflow: hidden; margin-top: 2px; color: var(--lc-muted); font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.lc-account-row { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 56px; padding: 0 16px; background: transparent; color: inherit; text-align: left; transition: background-color .15s ease-out; }
+.lc-account-identity + .lc-account-row { border-top: 1px solid var(--lc-line); }
+.lc-account-row:hover { background: color-mix(in srgb, var(--lc-text) 4%, transparent); }
+.lc-account-row:active { background: color-mix(in srgb, var(--lc-line) 28%, transparent); }
+.lc-account-row-icon { display: grid; flex: none; place-items: center; width: 32px; height: 32px; border-radius: 10px; background: var(--lc-line); color: var(--lc-text); }
+.lc-account-row-icon.is-accent { background: var(--lc-lime); color: var(--lc-on-lime); }
+.lc-account-row-label { flex: 1; min-width: 0; font-size: 16px; font-weight: 600; }
+.lc-account-row-value { color: var(--lc-muted); font-size: 14px; white-space: nowrap; }
+.lc-account-chevron { flex: none; color: var(--lc-muted); }
+.lc-account-footer { margin-top: 12px; }
+.lc-account-logout { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 52px; padding: 0 16px; border: 1px solid color-mix(in srgb, var(--lc-alert) 35%, var(--lc-line)); border-radius: 16px; background: transparent; color: var(--lc-alert); font-size: 16px; font-weight: 700; transition: background-color .15s ease-out; }
+.lc-account-logout:hover:not(:disabled) { background: color-mix(in srgb, var(--lc-alert) 7%, transparent); }
+.lc-account-logout:disabled { opacity: .6; }
 .lc-user-copy { flex: 1; min-width: 0; }
 .lc-user-copy b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 18px var(--lc-display); }
 .lc-user-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--lc-muted); font-size: 14px; }
-.lc-edit { flex: none; padding: 6px 14px; border: 2px solid var(--lc-line); border-radius: var(--lc-radius-pill); font-size: 14px; font-weight: 700; }
 .lc-row-button { display: flex; align-items: center; gap: var(--lc-space-6); width: 100%; margin-top: 14px; padding: 14px; border: 2px solid var(--lc-line); border-radius: var(--lc-radius-card); background: var(--lc-surface); text-align: left; }
 .lc-icon-disc { display: grid; flex: none; place-items: center; width: 56px; height: 56px; border-radius: var(--lc-radius-circle); background: var(--lc-lime); color: var(--lc-on-lime); }
 .lc-status { margin: 16px 0 0; padding: 10px 14px; border-radius: 14px; background: color-mix(in srgb, var(--lc-lime) 28%, transparent); font-size: 14px; font-weight: 700; }
@@ -298,7 +320,7 @@ button:disabled { cursor: default; }
   }
 
   .lc-dialog[aria-labelledby="account-title"] {
-    width: min(700px, calc(100vw - 48px));
+    width: min(480px, calc(100vw - 48px));
   }
 
   .lc-dialog[open] {
@@ -334,7 +356,7 @@ button:disabled { cursor: default; }
   }
 
   .lc-dialog[aria-labelledby="account-title"] {
-    width: min(740px, calc(100vw - 64px));
+    width: min(480px, calc(100vw - 64px));
   }
 
   .lc-dialog[aria-labelledby="purchase-title"] .lc-dialog-content {
@@ -361,47 +383,17 @@ button:disabled { cursor: default; }
     min-height: 90px;
   }
 
-  .lc-dialog[aria-labelledby="account-title"] .lc-dialog-content {
-    padding: 34px 38px;
-  }
-
-  .lc-account-main {
-    display: grid;
-    grid-template-columns: minmax(0, 1.3fr) minmax(220px, .7fr);
-    align-items: stretch;
-    gap: 14px;
-  }
-
-  .lc-account-main > .lc-status,
-  .lc-account-main > .lc-account-user {
-    grid-column: 1 / -1;
+  .lc-account-dialog .lc-dialog-content {
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
   }
 
   .lc-account-main > .lc-status {
     margin: 0;
   }
 
-  .lc-account-main > .lc-account-user {
-    margin: 4px 0;
-  }
-
-  .lc-account-main > .lc-row-button {
-    grid-column: 1;
-    min-height: 84px;
-    margin: 0;
-  }
-
-  .lc-account-main > .lc-cta.secondary {
-    grid-column: 2;
-    min-height: 84px;
-    margin: 0;
-    font-size: 16px;
-  }
-
   .lc-profile-form {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 20px;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .lc-profile-form > .lc-password-note,

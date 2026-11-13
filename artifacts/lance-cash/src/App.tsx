@@ -1,6 +1,6 @@
 import { memo, type FormEvent, type MutableRefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, Eye, EyeOff, Loader2, LockKeyhole, LogIn, Plus, X, Zap } from 'lucide-react';
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Eye, EyeOff, Loader2, LockKeyhole, LogIn, LogOut, Pencil, Plus, X, Zap } from 'lucide-react';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
@@ -1432,7 +1432,7 @@ function LanceCash() {
         </div>
       </dialog>
 
-      <dialog className="lc-dialog" ref={accountDialogRef} aria-labelledby="account-title" onClick={(event) => { if (event.target === accountDialogRef.current) accountDialogRef.current?.close(); }}>
+      <dialog className="lc-dialog lc-account-dialog" ref={accountDialogRef} aria-labelledby="account-title" onClick={(event) => { if (event.target === accountDialogRef.current) accountDialogRef.current?.close(); }}>
         <div className="lc-dialog-content">
           <div className="lc-dialog-header-actions">
             <div className="lc-back-heading">
@@ -1457,17 +1457,31 @@ function LanceCash() {
           {accountView === 'main' && state.user && (
             <section className="lc-account-main">
               {accountNotice && <p className="lc-status" role="status">{accountNotice}</p>}
-              <button className="lc-account-user" type="button" onClick={openProfile} aria-label="Editar dados da conta" data-testid="button-edit-profile">
-                <span className="lc-avatar big">{state.user.name.trim()[0]?.toUpperCase()}</span>
-                <span className="lc-user-copy"><b>{state.user.name}</b><small>{state.user.email}</small></span>
-                <span className="lc-edit">Editar</span>
-              </button>
-              <button className="lc-row-button" type="button" onClick={() => setAccountView('prizes')} data-testid="button-open-prizes">
-                <span className="lc-icon-disc"><TrophyMark /></span>
-                <span className="lc-user-copy"><b>Meus prêmios</b><small>{state.prizes.length ? `${state.prizes.length} ${state.prizes.length > 1 ? 'prêmios' : 'prêmio'}` : 'Nenhum prêmio ainda'}</small></span>
-                <ChevronRight size={18} strokeWidth={3} />
-              </button>
-              <button className="lc-cta secondary" type="button" onClick={() => void signOut()} disabled={logoutMutation.isPending} data-testid="button-sign-out">{logoutMutation.isPending ? 'Saindo…' : 'Sair da conta'}</button>
+              <div className="lc-account-card">
+                <div className="lc-account-identity">
+                  <span className="lc-account-avatar" aria-hidden="true">{state.user.name.trim()[0]?.toUpperCase()}</span>
+                  <span className="lc-account-identity-copy"><strong>{state.user.name}</strong><small>{state.user.email}</small></span>
+                </div>
+                <button className="lc-account-row" type="button" onClick={openProfile} aria-label="Editar dados da conta" data-testid="button-edit-profile">
+                  <span className="lc-account-row-icon"><Pencil size={17} strokeWidth={2.2} /></span>
+                  <span className="lc-account-row-label">Editar perfil</span>
+                  <ChevronRight className="lc-account-chevron" size={18} strokeWidth={2.4} />
+                </button>
+              </div>
+              <div className="lc-account-card">
+                <button className="lc-account-row" type="button" onClick={() => setAccountView('prizes')} data-testid="button-open-prizes">
+                  <span className="lc-account-row-icon is-accent"><TrophyMark size={18} /></span>
+                  <span className="lc-account-row-label">Meus prêmios</span>
+                  <span className="lc-account-row-value">{state.prizes.length ? `${state.prizes.length} ${state.prizes.length > 1 ? 'prêmios' : 'prêmio'}` : 'Nenhum ainda'}</span>
+                  <ChevronRight className="lc-account-chevron" size={18} strokeWidth={2.4} />
+                </button>
+              </div>
+              <footer className="lc-account-footer">
+                <button className="lc-account-logout" type="button" onClick={() => void signOut()} disabled={logoutMutation.isPending} data-testid="button-sign-out">
+                  <LogOut size={18} strokeWidth={2} />
+                  {logoutMutation.isPending ? 'Saindo…' : 'Sair da conta'}
+                </button>
+              </footer>
             </section>
           )}
 
