@@ -95,7 +95,6 @@ function LoadingView() {
         <section className="lc-slide">
           <div className="lc-slide-inner">
             <h1 className="lc-prize lc-loading-prize">
-              <span className="lc-skel lc-skel-currency" />
               <span className="lc-skel lc-skel-prize-value" />
             </h1>
 
@@ -104,7 +103,6 @@ function LoadingView() {
               <div className="lc-loading-current-copy">
                 <span className="lc-skel lc-skel-kicker" />
                 <span className="lc-skel lc-skel-leader" />
-                <span className="lc-skel lc-skel-subline" />
               </div>
             </section>
 
@@ -114,14 +112,10 @@ function LoadingView() {
             </h2>
 
             <ol className="lc-bid-list">
-              {Array.from({ length: 8 }, (_, index) => (
+              {Array.from({ length: 5 }, (_, index) => (
                 <li className="lc-bid-row" key={index}>
                   <span className="lc-skel lc-skel-avatar" />
-                  <div className="lc-bid-meta">
-                    <span className="lc-skel lc-skel-bid-name" />
-                    <span className="lc-skel lc-skel-bid-number" />
-                  </div>
-                  <span className="lc-skel lc-skel-bid-time" />
+                  <span className="lc-skel lc-skel-bid-copy" />
                 </li>
               ))}
             </ol>
