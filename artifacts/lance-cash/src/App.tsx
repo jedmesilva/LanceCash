@@ -981,12 +981,13 @@ function LanceCash() {
       const next = await bidMutation.mutateAsync({
         data: { auctionId: targetAuction.id },
       });
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      auctionScrollTargetRef.current = {
+        auctionId: next.currentAuctionId,
+        behavior: reducedMotion ? 'auto' : 'smooth',
+      };
+      initializedAuctionRef.current = next.currentAuctionId;
       patchState(next);
-      const nextIndex = next.auctions.findIndex((auction) => auction.id === next.currentAuctionId);
-      if (nextIndex >= 0) {
-        setVisibleIndex(nextIndex);
-        setOffsetScroll(nextIndex);
-      }
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Não foi possível começar o próximo leilão.');
     }
