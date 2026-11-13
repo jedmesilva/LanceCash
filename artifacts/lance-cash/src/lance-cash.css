@@ -175,26 +175,6 @@ button:disabled { cursor: default; }
 .lc-cta:disabled { background: var(--lc-line); color: var(--lc-muted); }
 .lc-cta.secondary { min-height: 40px; margin-top: 4px; border: 0; background: transparent; color: var(--lc-muted); font-size: 14px; }
 .lc-cta.secondary:hover:not(:disabled) { color: var(--lc-text); text-decoration: underline; }
-.lc-account-signout {
-  min-height: 52px;
-  margin-top: 14px;
-  gap: 9px;
-  border: 1px solid color-mix(in srgb, var(--lc-alert) 32%, var(--lc-line));
-  border-radius: var(--lc-radius-card);
-  background: color-mix(in srgb, var(--lc-alert) 5%, var(--lc-surface));
-  color: var(--lc-alert);
-  font-weight: 800;
-  text-decoration: none;
-  transition: background var(--lc-motion-fast), border-color var(--lc-motion-fast), transform var(--lc-motion-fast);
-}
-.lc-account-signout:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--lc-alert) 55%, var(--lc-line));
-  background: color-mix(in srgb, var(--lc-alert) 9%, var(--lc-surface));
-  color: var(--lc-alert);
-  text-decoration: none;
-}
-.lc-account-signout:focus-visible { outline: 2px solid var(--lc-alert); outline-offset: 2px; }
-.lc-account-signout:disabled { background: color-mix(in srgb, var(--lc-alert) 4%, var(--lc-surface)); color: var(--lc-muted); cursor: wait; }
 .lc-toast { position: fixed; z-index: 8; left: 50%; bottom: calc(150px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); max-width: calc(100vw - 32px); padding: 10px 16px; border-radius: var(--lc-radius-pill); background: var(--lc-text); color: var(--lc-bg); font-weight: 700; white-space: nowrap; box-shadow: 0 8px 24px var(--lc-shadow); }
 .lc-dialog { width: 100%; max-width: 480px; max-height: 92dvh; margin: auto auto 0; padding: 0; overflow: auto; border: 0; border-radius: var(--lc-radius-sheet); background: var(--lc-surface); color: var(--lc-text); }
 .lc-dialog::backdrop { background: var(--lc-scrim); }
@@ -242,6 +222,16 @@ button:disabled { cursor: default; }
 .lc-edit { flex: none; padding: 6px 14px; border: 2px solid var(--lc-line); border-radius: var(--lc-radius-pill); font-size: 14px; font-weight: 700; }
 .lc-row-button { display: flex; align-items: center; gap: var(--lc-space-6); width: 100%; margin-top: 14px; padding: 14px; border: 2px solid var(--lc-line); border-radius: var(--lc-radius-card); background: var(--lc-surface); text-align: left; }
 .lc-icon-disc { display: grid; flex: none; place-items: center; width: 56px; height: 56px; border-radius: var(--lc-radius-circle); background: var(--lc-lime); color: var(--lc-on-lime); }
+.lc-account-action-group { margin-top: 18px; padding-top: 15px; border-top: 1px solid var(--lc-line); }
+.lc-account-actions { display: grid; gap: 10px; margin-top: 10px; }
+.lc-account-actions-title { margin: 0; color: var(--lc-muted); font-size: 11px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.lc-account-actions .lc-row-button { min-height: 84px; margin: 0; }
+.lc-icon-disc.is-alert { background: color-mix(in srgb, var(--lc-alert) 11%, var(--lc-surface)); color: var(--lc-alert); }
+.lc-account-action-row.is-signout { border-color: color-mix(in srgb, var(--lc-alert) 22%, var(--lc-line)); background: color-mix(in srgb, var(--lc-alert) 2%, var(--lc-surface)); transition: background var(--lc-motion-fast), border-color var(--lc-motion-fast); }
+.lc-account-action-row.is-signout .lc-user-copy b { color: var(--lc-alert); }
+.lc-account-action-row.is-signout:hover:not(:disabled) { border-color: color-mix(in srgb, var(--lc-alert) 42%, var(--lc-line)); background: color-mix(in srgb, var(--lc-alert) 5%, var(--lc-surface)); }
+.lc-account-action-row.is-signout:focus-visible { outline-color: var(--lc-alert); }
+.lc-account-action-row.is-signout:disabled { opacity: .72; cursor: wait; }
 .lc-status { margin: 16px 0 0; padding: 10px 14px; border-radius: 14px; background: color-mix(in srgb, var(--lc-lime) 28%, transparent); font-size: 14px; font-weight: 700; }
 .lc-prize-row { display: flex; align-items: center; gap: 12px; padding: 12px 4px; border-bottom: 1px solid var(--lc-line); }
 .lc-prize-row .lc-icon-disc { width: 40px; height: 40px; }
@@ -405,18 +395,8 @@ button:disabled { cursor: default; }
     margin: 4px 0;
   }
 
-  .lc-account-main > .lc-row-button {
-    grid-column: 1;
-    min-height: 84px;
-    margin: 0;
-  }
-
-  .lc-account-main > .lc-account-signout {
-    grid-column: 2;
-    min-height: 84px;
-    margin: 0;
-    font-size: 16px;
-  }
+  .lc-account-main > .lc-account-action-group { grid-column: 1 / -1; margin-top: 14px; }
+  .lc-account-action-group .lc-account-actions { grid-template-columns: minmax(0, 1.3fr) minmax(220px, .7fr); gap: 14px; }
 
   .lc-profile-form {
     display: grid;

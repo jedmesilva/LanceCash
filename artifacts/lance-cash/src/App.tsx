@@ -1462,17 +1462,34 @@ function LanceCash() {
                 <span className="lc-user-copy"><b>{state.user.name}</b><small>{state.user.email}</small></span>
                 <span className="lc-edit">Editar</span>
               </button>
-              <button className="lc-row-button" type="button" onClick={() => setAccountView('prizes')} data-testid="button-open-prizes">
-                <span className="lc-icon-disc"><TrophyMark /></span>
-                <span className="lc-user-copy"><b>Meus prêmios</b><small>{state.prizes.length ? `${state.prizes.length} ${state.prizes.length > 1 ? 'prêmios' : 'prêmio'}` : 'Nenhum prêmio ainda'}</small></span>
-                <ChevronRight size={18} strokeWidth={3} />
-              </button>
-              <button className="lc-cta secondary lc-account-signout" type="button" onClick={() => void signOut()} disabled={logoutMutation.isPending} aria-busy={logoutMutation.isPending} data-testid="button-sign-out">
-                {logoutMutation.isPending
-                  ? <Loader2 className="lc-sync-spinner" size={18} aria-hidden="true" />
-                  : <LogOut size={18} strokeWidth={2.5} aria-hidden="true" />}
-                <span>{logoutMutation.isPending ? 'Saindo…' : 'Sair da conta'}</span>
-              </button>
+              <section className="lc-account-action-group" aria-labelledby="account-actions-title">
+                <h3 className="lc-account-actions-title" id="account-actions-title">Ações da conta</h3>
+                <div className="lc-account-actions">
+                  <button className="lc-row-button lc-account-action-row" type="button" onClick={() => setAccountView('prizes')} data-testid="button-open-prizes">
+                    <span className="lc-icon-disc"><TrophyMark /></span>
+                    <span className="lc-user-copy"><b>Meus prêmios</b><small>{state.prizes.length ? `${state.prizes.length} ${state.prizes.length > 1 ? 'prêmios' : 'prêmio'}` : 'Nenhum prêmio ainda'}</small></span>
+                    <ChevronRight size={18} strokeWidth={3} />
+                  </button>
+                  <button
+                    className="lc-row-button lc-account-action-row is-signout"
+                    type="button"
+                    onClick={() => void signOut()}
+                    disabled={logoutMutation.isPending}
+                    aria-busy={logoutMutation.isPending}
+                    data-testid="button-sign-out"
+                  >
+                    <span className="lc-icon-disc is-alert" aria-hidden="true">
+                      {logoutMutation.isPending
+                        ? <Loader2 className="lc-sync-spinner" size={20} />
+                        : <LogOut size={21} strokeWidth={2.5} />}
+                    </span>
+                    <span className="lc-user-copy">
+                      <b>{logoutMutation.isPending ? 'Saindo…' : 'Sair da conta'}</b>
+                      <small>{logoutMutation.isPending ? 'Encerrando sua sessão' : 'Encerrar sessão neste dispositivo'}</small>
+                    </span>
+                  </button>
+                </div>
+              </section>
             </section>
           )}
 

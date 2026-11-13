@@ -1,2 +1,3 @@
 - [External database schema drift](external-database-schema.md) — keep unmodeled auth columns and tables until their ownership and data usage are confirmed.
 - [Responsive bid history](bid-history-layout.md) — keep bids in page-level vertical scroll and load history as the user approaches its end.
+- [Account sign-out action](account-signout-action.md) — group logout with the other account actions; avoid a detached text or standalone button.
