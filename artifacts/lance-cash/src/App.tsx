@@ -1,6 +1,6 @@
 import { memo, type FormEvent, type MutableRefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, Eye, EyeOff, Loader2, LockKeyhole, LogIn, Plus, X, Zap } from 'lucide-react';
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Eye, EyeOff, Loader2, LockKeyhole, LogIn, LogOut, Plus, X, Zap } from 'lucide-react';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
@@ -1467,7 +1467,12 @@ function LanceCash() {
                 <span className="lc-user-copy"><b>Meus prêmios</b><small>{state.prizes.length ? `${state.prizes.length} ${state.prizes.length > 1 ? 'prêmios' : 'prêmio'}` : 'Nenhum prêmio ainda'}</small></span>
                 <ChevronRight size={18} strokeWidth={3} />
               </button>
-              <button className="lc-cta secondary" type="button" onClick={() => void signOut()} disabled={logoutMutation.isPending} data-testid="button-sign-out">{logoutMutation.isPending ? 'Saindo…' : 'Sair da conta'}</button>
+              <button className="lc-cta secondary lc-account-signout" type="button" onClick={() => void signOut()} disabled={logoutMutation.isPending} aria-busy={logoutMutation.isPending} data-testid="button-sign-out">
+                {logoutMutation.isPending
+                  ? <Loader2 className="lc-sync-spinner" size={18} aria-hidden="true" />
+                  : <LogOut size={18} strokeWidth={2.5} aria-hidden="true" />}
+                <span>{logoutMutation.isPending ? 'Saindo…' : 'Sair da conta'}</span>
+              </button>
             </section>
           )}
 
