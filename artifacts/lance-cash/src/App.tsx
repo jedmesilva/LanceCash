@@ -1197,7 +1197,6 @@ function LanceCash() {
         <div className="lc-pager-caption">
           <span className="lc-pager-caption-line">
             <b data-testid="text-auction-position">Leilão #{NUMBER.format(visibleAuction.id)}</b>
-            <span className="lc-pager-separator" aria-hidden="true">·</span>
             <span className={`lc-sync-label ${statusTone}`} role="status" aria-label={statusDescription}>
               <i aria-hidden="true" />
               {statusLabel}
