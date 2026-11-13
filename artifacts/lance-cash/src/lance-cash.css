@@ -173,7 +173,8 @@ button:disabled { cursor: default; }
 .lc-cta { display: flex; align-items: center; justify-content: center; gap: var(--lc-space-5); width: 100%; min-height: 64px; border-radius: var(--lc-radius-card); background: var(--lc-lime); color: var(--lc-on-lime); font: 800 20px var(--lc-display); transition: transform var(--lc-motion-fast); }
 .lc-cta:active:not(:disabled) { transform: scale(.98); }
 .lc-cta:disabled { background: var(--lc-line); color: var(--lc-muted); }
-.lc-cta.secondary { min-height: 56px; margin-top: 14px; border: 2px solid var(--lc-line); background: none; color: var(--lc-alert); font-size: 17px; }
+.lc-cta.secondary { min-height: 40px; margin-top: 4px; border: 0; background: transparent; color: var(--lc-muted); font-size: 14px; }
+.lc-cta.secondary:hover:not(:disabled) { color: var(--lc-text); text-decoration: underline; }
 .lc-toast { position: fixed; z-index: 8; left: 50%; bottom: calc(150px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); max-width: calc(100vw - 32px); padding: 10px 16px; border-radius: var(--lc-radius-pill); background: var(--lc-text); color: var(--lc-bg); font-weight: 700; white-space: nowrap; box-shadow: 0 8px 24px var(--lc-shadow); }
 .lc-dialog { width: 100%; max-width: 480px; max-height: 92dvh; margin: auto auto 0; padding: 0; overflow: auto; border: 0; border-radius: var(--lc-radius-sheet); background: var(--lc-surface); color: var(--lc-text); }
 .lc-dialog::backdrop { background: var(--lc-scrim); }
