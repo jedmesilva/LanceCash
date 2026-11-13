@@ -1428,7 +1428,7 @@ function LanceCash() {
           <button className="lc-cta lc-payment-button" type="button" disabled={!selectedPackage || packageMutation.isPending} onClick={() => void purchasePackage()} data-testid="button-simulated-pix">
             {packageMutation.isPending ? 'Confirmando Pix…' : selectedPackage ? `Pagar ${BRL0.format(selectedPackage.price)} com Pix` : 'Escolha um pacote'}
           </button>
-          <p className="lc-note">Cada lance consome 1 unidade do seu saldo. Neste protótipo, o Pix é simulado; lances usados não são reembolsados.</p>
+          <p className="lc-note">Cada lance consome 1 unidade do seu saldo.</p>
         </div>
       </dialog>
 
