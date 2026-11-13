@@ -98,11 +98,7 @@ button:disabled { cursor: default; }
 .lc-sync-label.is-disconnected { color: var(--lc-alert); }
 .lc-sync-label.is-sync-error { color: #946000; }
 .lc-sync-label.is-neutral { color: var(--lc-muted); }
-.lc-dots { display: flex; align-items: center; gap: 6px; }
-.lc-dots i { width: 6px; height: 6px; border-radius: var(--lc-radius-circle); background: var(--lc-line); }
-.lc-dots i.live { background: var(--lc-lime); box-shadow: inset 0 0 0 1.5px var(--lc-text); }
-.lc-dots i.selected { width: 18px; border-radius: var(--lc-radius-pill); background: var(--lc-text); }
-.lc-slides { flex: none; display: flex; width: 100%; min-height: 0; overflow-x: auto; overflow-y: clip; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
+.lc-slides { flex: none; display: flex; width: 100%; min-height: 0; overflow-x: auto; overflow-y: clip; overflow-anchor: none; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
 .lc-slides::-webkit-scrollbar { display: none; }
 .lc-slide { display: flex; flex: 0 0 100%; flex-direction: column; min-width: 0; min-height: 0; scroll-snap-align: center; scroll-snap-stop: always; touch-action: pan-x pan-y; }
 .lc-slide-inner { display: flex; flex: none; flex-direction: column; width: 100%; min-height: 0; max-width: 480px; margin: 0 auto; padding: 0 20px 24px; }

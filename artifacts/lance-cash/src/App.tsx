@@ -56,6 +56,7 @@ const BRL2 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL'
 const NUMBER = new Intl.NumberFormat('pt-BR');
 const INCOMING_BID_FEEDBACK_MS = 1000;
 const INCOMING_BID_FADE_MS = 150;
+const AUCTION_PAGE_SIZE = 5;
 
 function apiErrorStatus(error: unknown): number | undefined {
   if (typeof error !== 'object' || error === null || !('status' in error)) return undefined;
@@ -86,13 +87,6 @@ function LoadingView() {
         <span className="lc-pager-button"><span className="lc-skel lc-skel-pager-control" /></span>
         <div className="lc-pager-caption">
           <span className="lc-skel lc-skel-pager-line" />
-          <div className="lc-dots">
-            <span className="lc-skel lc-skel-dot" />
-            <span className="lc-skel lc-skel-dot" />
-            <span className="lc-skel lc-skel-dot lc-skel-dot-selected" />
-            <span className="lc-skel lc-skel-dot" />
-            <span className="lc-skel lc-skel-dot" />
-          </div>
         </div>
         <span className="lc-pager-button"><span className="lc-skel lc-skel-pager-control" /></span>
       </nav>
@@ -339,6 +333,9 @@ function LanceCash() {
       : realtimeConnected ? 'healthy' : 'delayed';
   useHealthCheck();
   const state = stateQuery.data as LanceCashState | undefined;
+  const [loadedAuctionState, setLoadedAuctionState] = useState<{ scope: string; auctions: LanceCashAuction[] }>({ scope: 'public', auctions: [] });
+  const [auctionPageAvailability, setAuctionPageAvailability] = useState<{ scope: string; previous: boolean; next: boolean }>({ scope: '', previous: false, next: false });
+  const [loadingAuctionPages, setLoadingAuctionPages] = useState<{ scope: string; previous: boolean; next: boolean }>({ scope: 'public', previous: false, next: false });
   const hasAccountData =
     authenticatedUser !== undefined &&
     state !== undefined &&
@@ -372,8 +369,6 @@ function LanceCash() {
     }
   }, [state, verificationTarget]);
   const [visibleIndex, setVisibleIndex] = useState(0);
-  const [loadedAuctionState, setLoadedAuctionState] = useState<{ scope: string; auctions: LanceCashAuction[] }>({ scope: 'public', auctions: [] });
-  const [auctionPageAvailability, setAuctionPageAvailability] = useState<{ scope: string; previous: boolean; next: boolean }>({ scope: 'public', previous: false, next: false });
   const [historyRequest, setHistoryRequest] = useState<{ auctionId: number; before: number } | null>(null);
   const [historyExtra, setHistoryExtra] = useState<Record<number, AuctionBid[]>>({});
   const [historyHasMoreByAuction, setHistoryHasMoreByAuction] = useState<Record<number, boolean>>({});
@@ -410,9 +405,12 @@ function LanceCash() {
   const packageRequestRef = useRef<{ packageId: string; requestId: string } | null>(null);
   const lastBidCountByAuctionRef = useRef<Map<number, number> | null>(null);
   const incomingBidTimerRef = useRef<number | null>(null);
-  const auctionPageLoadingRef = useRef(new Set<AuctionPageDirection>());
-  const auctionPagesLoadedRef = useRef({ previous: false, next: false });
+  const auctionPageLoadingRef = useRef(new Set<string>());
+  const failedAuctionPageRequestsRef = useRef(new Set<string>());
+  const pendingAuctionAnchorRef = useRef<{ auctionId: number; left: number } | null>(null);
+  const auctionNavigationRef = useRef<AuctionPageDirection | null>(null);
   const auctionScrollTargetRef = useRef<{ auctionId: number; behavior: ScrollBehavior } | null>(null);
+  const carouselInitializedRef = useRef(false);
   const hasConnectedRealtimeRef = useRef(false);
 
   const visibleAuction = auctions[visibleIndex] ?? currentAuction;
@@ -529,6 +527,11 @@ function LanceCash() {
   }, [isAuthenticated ? authQuery.data?.user.id : null, isAuthenticated, queryClient]);
 
   useEffect(() => {
+    auctionNavigationRef.current = null;
+    pendingAuctionAnchorRef.current = null;
+  }, [auctionScope]);
+
+  useEffect(() => {
     if (!visibleAuction || visibleAuction.status === 'upcoming' || typeof IntersectionObserver === 'undefined') return;
     const sentinel = historySentinelRefs.current.get(visibleAuction.id);
     if (!sentinel) return;
@@ -568,12 +571,50 @@ function LanceCash() {
     }
   }, [state?.currentAuctionId, currentIndex, visibleIndex, auctions]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (offsetScroll !== null && slidesRef.current) {
       slidesRef.current.scrollLeft = offsetScroll * slidesRef.current.clientWidth;
+      carouselInitializedRef.current = true;
       setOffsetScroll(null);
     }
   }, [offsetScroll]);
+
+  useLayoutEffect(() => {
+    const element = slidesRef.current;
+    if (!element || !auctions.length) return;
+
+    const target = auctionScrollTargetRef.current;
+    if (target) {
+      const targetIndex = auctions.findIndex((auction) => auction.id === target.auctionId);
+      if (targetIndex >= 0) {
+        auctionScrollTargetRef.current = null;
+        pendingAuctionAnchorRef.current = null;
+        element.scrollTo({
+          left: targetIndex * element.clientWidth,
+          behavior: target.behavior,
+        });
+        setVisibleIndex(targetIndex);
+        return;
+      }
+    }
+
+    const anchor = pendingAuctionAnchorRef.current;
+    if (anchor) {
+      pendingAuctionAnchorRef.current = null;
+      const anchorElement = element.querySelector<HTMLElement>(
+        `[data-testid="section-auction-${anchor.auctionId}"]`,
+      );
+      if (anchorElement) {
+        const horizontalShift = anchorElement.getBoundingClientRect().left - anchor.left;
+        if (Math.abs(horizontalShift) > 0.5) element.scrollLeft += horizontalShift;
+        const visible = Math.max(
+          0,
+          Math.min(auctions.length - 1, Math.round(element.scrollLeft / element.clientWidth)),
+        );
+        setVisibleIndex(visible);
+      }
+    }
+  }, [auctions]);
 
   useEffect(() => {
     if (historyRequest === null || !historyQuery.data) return;
@@ -628,11 +669,161 @@ function LanceCash() {
     setToastTimer(window.setTimeout(() => setToastText(''), 2400));
   };
 
+  const loadAuctionPage = useCallback(async (direction: AuctionPageDirection) => {
+    if (!state || !auctions.length) return;
+    if (direction === 'previous' && !hasMorePreviousAuctions) return;
+    if (direction === 'next' && !hasMoreNextAuctions) return;
+
+    const cursor = direction === 'previous' ? auctions[0].id : auctions[auctions.length - 1].id;
+    const requestKey = `${auctionScope}:${direction}:${cursor}`;
+    if (auctionPageLoadingRef.current.has(requestKey) || failedAuctionPageRequestsRef.current.has(requestKey)) return;
+
+    const params = { direction, cursor, limit: AUCTION_PAGE_SIZE } as const;
+    auctionPageLoadingRef.current.add(requestKey);
+    setLoadingAuctionPages((current) => ({
+      scope: auctionScope,
+      previous: (current.scope === auctionScope && current.previous) || direction === 'previous',
+      next: (current.scope === auctionScope && current.next) || direction === 'next',
+    }));
+
+    try {
+      const page = await queryClient.fetchQuery({
+        queryKey: [...getGetLanceCashAuctionsQueryKey(params), auctionScope],
+        queryFn: () => getLanceCashAuctions(params),
+        staleTime: 30_000,
+      });
+      const addedAuctions = page.auctions.filter(
+        (auction) => !auctions.some((loaded) => loaded.id === auction.id),
+      );
+
+      if (
+        direction === 'previous' &&
+        addedAuctions.length > 0 &&
+        auctionNavigationRef.current !== direction
+      ) {
+        const element = slidesRef.current;
+        if (element && element.clientWidth > 0) {
+          const index = Math.max(
+            0,
+            Math.min(auctions.length - 1, Math.round(element.scrollLeft / element.clientWidth)),
+          );
+          const slide = element.children.item(index) as HTMLElement | null;
+          const auctionId = Number(
+            slide?.getAttribute('data-testid')?.replace('section-auction-', ''),
+          );
+          if (Number.isInteger(auctionId)) {
+            pendingAuctionAnchorRef.current = {
+              auctionId,
+              left: slide?.getBoundingClientRect().left ?? 0,
+            };
+          }
+        }
+      }
+      if (auctionNavigationRef.current === direction) {
+        const target = direction === 'previous'
+          ? page.auctions.at(-1)
+          : page.auctions[0];
+        if (target) auctionScrollTargetRef.current = { auctionId: target.id, behavior: 'smooth' };
+        auctionNavigationRef.current = null;
+      }
+
+      setLoadedAuctionState((current) => ({
+        scope: auctionScope,
+        auctions: mergeAuctions(
+          current.scope === auctionScope ? current.auctions : [],
+          page.auctions,
+        ),
+      }));
+      setAuctionPageAvailability((current) => ({
+        scope: auctionScope,
+        previous: direction === 'previous'
+          ? page.hasMore
+          : current.scope === auctionScope
+            ? current.previous
+            : state.auctionPagination.hasPrevious,
+        next: direction === 'next'
+          ? page.hasMore
+          : current.scope === auctionScope
+            ? current.next
+            : state.auctionPagination.hasNext,
+      }));
+      failedAuctionPageRequestsRef.current.delete(requestKey);
+    } catch {
+      failedAuctionPageRequestsRef.current.add(requestKey);
+      if (auctionNavigationRef.current === direction) auctionNavigationRef.current = null;
+      showToast('Não foi possível carregar mais leilões. Tente novamente.');
+    } finally {
+      auctionPageLoadingRef.current.delete(requestKey);
+      setLoadingAuctionPages((current) => current.scope !== auctionScope
+        ? current
+        : {
+            ...current,
+            [direction]: false,
+          });
+    }
+  }, [
+    auctionScope,
+    auctions,
+    hasMoreNextAuctions,
+    hasMorePreviousAuctions,
+    queryClient,
+    showToast,
+    state,
+  ]);
+
+  useEffect(() => {
+    if (
+      !state ||
+      !carouselInitializedRef.current ||
+      !auctions.length ||
+      loadingAuctionPages.scope === auctionScope &&
+        (loadingAuctionPages.previous || loadingAuctionPages.next)
+    ) return;
+
+    const element = slidesRef.current;
+    const activeIndex = element?.clientWidth
+      ? Math.round(element.scrollLeft / element.clientWidth)
+      : visibleIndex;
+    if (activeIndex <= 1 && activeIndex < currentIndex && hasMorePreviousAuctions) {
+      void loadAuctionPage('previous');
+    } else if (activeIndex >= auctions.length - 2 && activeIndex > currentIndex && hasMoreNextAuctions) {
+      void loadAuctionPage('next');
+    }
+  }, [
+    auctionScope,
+    auctions.length,
+    currentIndex,
+    hasMoreNextAuctions,
+    hasMorePreviousAuctions,
+    loadAuctionPage,
+    loadingAuctionPages,
+    state,
+    visibleIndex,
+  ]);
+
   const scrollToIndex = (index: number) => {
     const element = slidesRef.current;
     if (!element) return;
     const clamped = Math.max(0, Math.min(auctions.length - 1, index));
     element.scrollTo({ left: clamped * element.clientWidth, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  };
+
+  const navigateAuctionPage = (direction: AuctionPageDirection) => {
+    const atBoundary = direction === 'previous'
+      ? visibleIndex === 0
+      : visibleIndex >= auctions.length - 1;
+    if (!atBoundary) {
+      scrollToIndex(visibleIndex + (direction === 'previous' ? -1 : 1));
+      return;
+    }
+
+    const hasMore = direction === 'previous' ? hasMorePreviousAuctions : hasMoreNextAuctions;
+    const cursor = direction === 'previous' ? auctions[0]?.id : auctions.at(-1)?.id;
+    if (!hasMore || cursor === undefined) return;
+
+    failedAuctionPageRequestsRef.current.delete(`${auctionScope}:${direction}:${cursor}`);
+    auctionNavigationRef.current = direction;
+    void loadAuctionPage(direction);
   };
 
   const syncVisible = () => {
@@ -948,6 +1139,8 @@ function LanceCash() {
 
   const hasPrevious = visibleIndex > 0;
   const hasNext = visibleIndex < auctions.length - 1;
+  const isLoadingPreviousAuctions = loadingAuctionPages.scope === auctionScope && loadingAuctionPages.previous;
+  const isLoadingNextAuctions = loadingAuctionPages.scope === auctionScope && loadingAuctionPages.next;
   const statusLabel = serverConnectionLost ? 'Desconectado'
     : stateSyncFailed ? 'Falha na sincronização'
       : !realtimeConnected ? 'Atrasado'
@@ -998,7 +1191,9 @@ function LanceCash() {
       </header>
 
       <nav className="lc-pager" aria-label="Navegar entre leilões">
-        <button className="lc-pager-button" type="button" aria-label="Leilão anterior" disabled={!hasPrevious} onClick={() => scrollToIndex(visibleIndex - 1)} data-testid="button-previous-auction"><ChevronLeft size={20} strokeWidth={3} /></button>
+        <button className="lc-pager-button" type="button" aria-label="Leilão anterior" aria-busy={isLoadingPreviousAuctions} disabled={!hasPrevious && !hasMorePreviousAuctions} onClick={() => navigateAuctionPage('previous')} data-testid="button-previous-auction">
+          {isLoadingPreviousAuctions ? <Loader2 className="lc-sync-spinner" size={18} aria-hidden="true" /> : <ChevronLeft size={20} strokeWidth={3} />}
+        </button>
         <div className="lc-pager-caption">
           <span>
             <b data-testid="text-auction-position">Leilão #{NUMBER.format(visibleAuction.id)}</b> ·{' '}
@@ -1007,11 +1202,10 @@ function LanceCash() {
               {statusLabel}
             </span>
           </span>
-          <div className="lc-dots" aria-hidden="true">
-            {auctions.map((auction, index) => <i key={auction.id} className={`${index === visibleIndex ? 'selected ' : ''}${auction.id === state.currentAuctionId ? 'live' : ''}`} />)}
-          </div>
         </div>
-        <button className="lc-pager-button" type="button" aria-label="Próximo leilão" disabled={!hasNext} onClick={() => scrollToIndex(visibleIndex + 1)} data-testid="button-next-auction"><ChevronRight size={20} strokeWidth={3} /></button>
+        <button className="lc-pager-button" type="button" aria-label="Próximo leilão" aria-busy={isLoadingNextAuctions} disabled={!hasNext && !hasMoreNextAuctions} onClick={() => navigateAuctionPage('next')} data-testid="button-next-auction">
+          {isLoadingNextAuctions ? <Loader2 className="lc-sync-spinner" size={18} aria-hidden="true" /> : <ChevronRight size={20} strokeWidth={3} />}
+        </button>
       </nav>
 
       <div
