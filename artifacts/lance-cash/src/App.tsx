@@ -1195,8 +1195,9 @@ function LanceCash() {
           {isLoadingPreviousAuctions ? <Loader2 className="lc-sync-spinner" size={18} aria-hidden="true" /> : <ChevronLeft size={20} strokeWidth={3} />}
         </button>
         <div className="lc-pager-caption">
-          <span>
-            <b data-testid="text-auction-position">Leilão #{NUMBER.format(visibleAuction.id)}</b> ·{' '}
+          <span className="lc-pager-caption-line">
+            <b data-testid="text-auction-position">Leilão #{NUMBER.format(visibleAuction.id)}</b>
+            <span className="lc-pager-separator" aria-hidden="true">·</span>
             <span className={`lc-sync-label ${statusTone}`} role="status" aria-label={statusDescription}>
               <i aria-hidden="true" />
               {statusLabel}

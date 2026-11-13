@@ -90,6 +90,7 @@ button:disabled { cursor: default; }
 .lc-pager-button { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--lc-radius-circle); }
 .lc-pager-button:disabled { opacity: .25; }
 .lc-pager-caption { display: grid; justify-items: center; gap: 6px; color: var(--lc-muted); font-size: 13px; font-weight: 600; }
+.lc-pager-caption-line { display: flex; align-items: center; justify-content: center; gap: 5px; }
 .lc-pager-caption b { color: var(--lc-text); font-weight: 800; }
 .lc-sync-label { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; }
 .lc-sync-label i { width: 7px; height: 7px; border-radius: var(--lc-radius-circle); background: currentColor; }
