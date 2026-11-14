@@ -5,10 +5,12 @@
  * Private administration API
  * OpenAPI spec version: 0.1.0
  */
+import type { AdminAuctionBidSource } from './adminAuctionBidSource';
 
 export interface AdminAuctionBid {
   id: number;
   number: number;
   leader: string;
+  source: AdminAuctionBidSource;
   createdAt: Date;
 }

@@ -8,6 +8,7 @@
 
 export * from './adminAccessInput';
 export * from './adminAuctionBid';
+export * from './adminAuctionBidSource';
 export * from './adminAuctionBidsPage';
 export * from './adminAuctionPage';
 export * from './adminAuctionSummary';

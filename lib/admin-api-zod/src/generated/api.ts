@@ -134,6 +134,7 @@ export const GetAdminAuctionBidsResponse = zod.object({
   "id": zod.number().int(),
   "number": zod.number().int(),
   "leader": zod.string(),
+  "source": zod.enum(['user_manual', 'user_automation', 'system_automation', 'system_admin']),
   "createdAt": zod.coerce.date()
 })),
   "nextBefore": zod.number().int().nullable(),

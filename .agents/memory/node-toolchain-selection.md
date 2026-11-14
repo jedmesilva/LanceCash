@@ -7,4 +7,4 @@ The workspace runtime configuration can pin Node 20, and the installed pnpm wrap
 
 **Why:** tooling such as Orval can require Node APIs that are unavailable in the configured runtime, even when a newer runtime has been installed.
 
-**How to apply:** verify the version through the same pnpm command that will run the tool. If it is still Node 20, explicitly invoke pnpm with Node 24 and put Node 24 first on `PATH`, or update the workspace runtime when a lasting version change is intended.
+**How to apply:** verify the version through the same pnpm command that will run the tool. If it is still Node 20, explicitly invoke pnpm with Node 24 and put Node 24 first on `PATH`; child scripts such as Orval resolve their own `node` from `PATH`, so invoking pnpm through Node 24 alone is insufficient. Update the workspace runtime only when a lasting version change is intended.

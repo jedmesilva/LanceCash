@@ -27,6 +27,7 @@ const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL
 const dateTime = (value: string | null) => value
   ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
   : '—';
+const bidDateTime = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium', timeStyle: 'medium' });
 
 function Skeleton({ rows = 3 }: { rows?: number }) {
   return <div className="adm-skeletons" aria-label="Carregando" aria-busy="true">{Array.from({ length: rows }, (_, index) => <i key={index} />)}</div>;
@@ -232,7 +233,7 @@ export function AdminAuctionDetailPage() {
     {!Number.isInteger(auctionId) || auctionId < 1 ? <ErrorNotice retry={() => navigate('/')} message="Este identificador de leilão é inválido." /> : <section className="adm-history-panel">
       {auction && <div className="adm-history-summary"><span><b>{fmt.format(auction.bidCount)}</b> lances no total</span><span>Líder <b>{auction.leader || '—'}</b></span><span>Início {dateTime(auction.startedAt)}</span></div>}
       {history.isLoading ? <Skeleton rows={7} /> : history.isError && !history.data ? <ErrorNotice retry={() => void history.refetch()} /> : bids.length === 0 ? <div className="adm-empty"><CalendarClock size={20} /><p>Nenhum lance registrado neste leilão.</p></div> : <>
-        <div className="adm-bid-table-wrap"><table className="adm-bid-table"><thead><tr><th>Número</th><th>Licitante</th><th>Origem (source)</th><th>Registrado</th></tr></thead><tbody>{bids.map((bid) => <tr key={bid.id} data-testid={`row-bid-${bid.id}`}><td><span className="adm-bid-number">#{fmt.format(bid.number)}</span></td><td className="adm-bidder">{bid.leader}</td><td><code className="adm-bid-source">{bid.source}</code></td><td className="adm-bid-date">{dateTime(bid.createdAt)}</td></tr>)}</tbody></table></div>
+        <div className="adm-bid-table-wrap"><table className="adm-bid-table"><thead><tr><th>Número</th><th>Licitante</th><th>Origem (source)</th><th>Registrado</th></tr></thead><tbody>{bids.map((bid) => <tr key={bid.id} data-testid={`row-bid-${bid.id}`}><td><span className="adm-bid-number">#{fmt.format(bid.number)}</span></td><td className="adm-bidder">{bid.leader}</td><td><code className="adm-bid-source">{bid.source}</code></td><td className="adm-bid-date">{bidDateTime.format(new Date(bid.createdAt))}</td></tr>)}</tbody></table></div>
         {history.hasNextPage && !history.isFetchNextPageError && <div className="adm-load-older" role="status"><LoaderCircle className="adm-spin" size={15} /> Carregando todos os lances: {fmt.format(bids.length)} de {fmt.format(auction?.bidCount ?? bids.length)}</div>}
         {history.isFetchNextPageError && <ErrorNotice retry={() => void history.fetchNextPage()} message="Não foi possível carregar todos os lances." />}
       </>}
