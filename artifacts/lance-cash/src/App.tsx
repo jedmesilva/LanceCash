@@ -168,14 +168,15 @@ const AuctionCountdown = memo(function AuctionCountdown({
   const ringProgress = status === 'live' ? Math.min(100, (remainingMs / 15_000) * 100) : 0;
   const deadlineReached = status === 'live' && Boolean(deadlineAt) && remainingMs === 0;
   const showVerification = isVerifying || deadlineReached;
-  const isLow = status === 'live' && seconds < 5 && !showVerification && connectionState === 'healthy';
+  const isOpen = status === 'live' && !deadlineAt;
+  const isLow = status === 'live' && Boolean(deadlineAt) && seconds < 5 && !showVerification && connectionState === 'healthy';
 
   useEffect(() => {
     if (deadlineReached && deadlineAt) onDeadline(auctionId, deadlineAt);
   }, [auctionId, deadlineAt, deadlineReached, onDeadline]);
 
   return (
-    <div className={`lc-ring${isLow ? ' is-low' : ''}${showVerification ? ' is-verifying' : ''}${status === 'live' && connectionState !== 'healthy' ? ` is-${connectionState}` : ''}`}>
+    <div className={`lc-ring${isOpen ? ' is-open' : ''}${isLow ? ' is-low' : ''}${showVerification ? ' is-verifying' : ''}${status === 'live' && connectionState !== 'healthy' ? ` is-${connectionState}` : ''}`}>
       <svg viewBox="0 0 40 40" aria-hidden="true">
         <circle className="ring-bg" cx="20" cy="20" r="17" />
         <circle className="ring-fill" cx="20" cy="20" r="17" pathLength="100" style={{ strokeDashoffset: 100 - ringProgress }} />
@@ -184,6 +185,8 @@ const AuctionCountdown = memo(function AuctionCountdown({
         <span className="lc-ring-check" role="img" aria-label="Leilão encerrado">
           <Check size={22} strokeWidth={3} />
         </span>
+      ) : isOpen ? (
+        <b role="status" aria-label="Leilão aberto, aguardando o primeiro lance">Aberto</b>
       ) : (
         <b role="timer" aria-label={showVerification ? 'Verificando o resultado com o servidor' : `${seconds} segundos restantes`}>
           {showVerification ? '…' : seconds}
@@ -1163,7 +1166,7 @@ function LanceCash() {
   const statusLabel = serverConnectionLost ? 'Desconectado'
     : stateSyncFailed ? 'Falha na sincronização'
       : !realtimeConnected ? 'Atrasado'
-        : visibleAuction.status === 'live' ? 'Ao vivo'
+        : visibleAuction.status === 'live' ? visibleAuction.bidCount === 0 ? 'Aberto' : 'Ao vivo'
           : visibleAuction.status === 'ended' ? 'Encerrado' : 'Em breve';
   const statusTone = serverConnectionLost ? 'is-disconnected'
     : stateSyncFailed ? 'is-sync-error'
@@ -1172,7 +1175,9 @@ function LanceCash() {
   const statusDescription = serverConnectionLost ? 'Desconectado; cronômetro pausado'
     : stateSyncFailed ? 'Falha ao atualizar o estado HTTP; WebSocket ainda conectado'
       : !realtimeConnected ? 'Atualização em tempo real atrasada; sincronização HTTP ativa'
-        : visibleAuction.status === 'live' ? 'Leilão ao vivo; servidor conectado'
+        : visibleAuction.status === 'live' ? visibleAuction.bidCount === 0
+          ? 'Leilão aberto; o primeiro lance pode ser dado agora'
+          : 'Leilão ao vivo; servidor conectado'
           : visibleAuction.status === 'ended' ? 'Leilão encerrado; servidor conectado'
             : 'Leilão em breve; servidor conectado';
   const currentLeaderIsUser = currentAuction?.leader === 'Você';
@@ -1262,6 +1267,7 @@ function LanceCash() {
           const upcoming = auction.status === 'upcoming';
           const mine = auction.leader === 'Você';
           const isActive = auction.status === 'live';
+          const isOpenForFirstBid = isActive && auction.bidCount === 0;
           const prizeFormatted = BRL2.format(auction.prize).replace(/^R\$\s?/, '');
           const auctionBids = [...(historyExtra[auction.id] ?? []), ...auction.bids]
             .reduce((all, bid) => all.set(bid.number, bid), new Map<number, AuctionBid>())
@@ -1282,6 +1288,7 @@ function LanceCash() {
             : null;
           const leaderText = upcoming ? 'Em breve'
             : isVerifyingAuction ? 'Verificando resultado…'
+              : isOpenForFirstBid ? 'Aberto'
               : mine ? ended ? 'Você ganhou!' : 'Você' : auction.leader;
           const kickerText = upcoming
             ? `Leilão #${auction.id}`
@@ -1289,7 +1296,9 @@ function LanceCash() {
               ? auction.bidCount > 0 && auction.leader
                 ? `Lance vencedor #${NUMBER.format(auction.bidCount)}`
                 : 'Leilão encerrado'
-              : `Lance atual #${NUMBER.format(auction.bidCount)}`;
+              : isOpenForFirstBid
+                ? 'Primeiro lance'
+                : `Lance atual #${NUMBER.format(auction.bidCount)}`;
           return (
             <section
               className="lc-slide"
@@ -1301,7 +1310,7 @@ function LanceCash() {
                 <h1 className="lc-prize" aria-label={`Prêmio de ${BRL2.format(auction.prize)} em dinheiro`}>
                   <small>R$</small>{prizeFormatted.slice(0, -3)}<small className="decimal">{prizeFormatted.slice(-3)}</small>
                 </h1>
-                <section className={`lc-current${ended ? ' is-ended' : ''}${mine && !upcoming ? ' is-mine' : ''}${isIncomingBidVisible ? ' is-new-bid' : ''}`} aria-label="Lance atual" data-testid={`status-auction-${auction.id}`}>
+                <section className={`lc-current${ended ? ' is-ended' : ''}${isOpenForFirstBid ? ' is-open' : ''}${mine && !upcoming ? ' is-mine' : ''}${isIncomingBidVisible ? ' is-new-bid' : ''}`} aria-label={isOpenForFirstBid ? 'Leilão aberto' : 'Lance atual'} data-testid={`status-auction-${auction.id}`}>
                   <AuctionCountdown
                     auctionId={auction.id}
                     status={auction.status}
@@ -1344,7 +1353,9 @@ function LanceCash() {
                     <div className={`lc-subline${connectionNotice ? ` is-sync-notice is-${countdownConnectionState}` : ''}`} role={connectionNotice ? 'status' : undefined} aria-live={connectionNotice ? 'polite' : undefined}>
                       {serverConnectionLost && isVerifyingAuction ? 'Sem conexão — resultado ainda não confirmado'
                         : isVerifyingAuction ? 'O servidor ainda está confirmando o resultado'
-                        : connectionNotice ?? (upcoming ? 'Começa quando o leilão anterior encerrar' : ended
+                        : connectionNotice ?? (upcoming ? 'Começa quando o leilão anterior encerrar' : isOpenForFirstBid
+                          ? 'Dê o primeiro lance para iniciar a contagem de 15 s'
+                          : ended
                           ? mine ? `Você levou os ${BRL2.format(auction.prize)}` : `Levou os ${BRL2.format(auction.prize)}`
                           : mine ? 'Ao zerar, você leva o prêmio' : 'Ao zerar, quem deu o último lance leva o prêmio')}
                     </div>

@@ -256,25 +256,7 @@ async function advanceCurrentAuction(
   if (!auction) return null;
 
   const now = new Date();
-  if (auction.bidCount === 0 && (auction.deadlineAt || auction.nextBotAt)) {
-    await tx
-      .update(auctionsTable)
-      .set({
-        startedAt: null,
-        deadlineAt: null,
-        nextBotAt: null,
-        currentLeaderName: "",
-      })
-      .where(eq(auctionsTable.id, auction.id));
-    return createAuctionRealtimeUpdate(auction, {
-      status: "live",
-      bidCount: 0,
-      leader: "",
-      startedAt: null,
-      deadlineAt: null,
-      serverTime: now.toISOString(),
-    });
-  }
+  if (auction.bidCount === 0) return null;
 
   if (auction.deadlineAt && now >= auction.deadlineAt) {
     await tx
@@ -306,7 +288,7 @@ async function advanceCurrentAuction(
   const bidderName =
     bidderNames[Math.floor(Math.random() * bidderNames.length)] ?? "Participante";
   const nextBotAt = new Date(
-    now.getTime() + 2_500 + Math.random() * 3_500,
+    now.getTime() + 2_500 + Math.random() * 18_500,
   );
 
   await tx.insert(auctionBidsTable).values({
@@ -395,12 +377,16 @@ async function openNextAuction(
   if (!nextAuction) return null;
 
   const now = new Date();
+  const startedAt = now;
+  // The database requires timestamps for live auctions. While there are no bids,
+  // this deadline is a placeholder and is hidden from clients until the first bid.
+  const deadlineAt = new Date(now.getTime() + auctionDurationMs);
   await tx
     .update(auctionsTable)
     .set({
       status: "live",
-      startedAt: null,
-      deadlineAt: null,
+      startedAt,
+      deadlineAt,
       nextBotAt: null,
     })
     .where(eq(auctionsTable.id, nextAuction.id));
@@ -410,7 +396,7 @@ async function openNextAuction(
     status: "live",
     bidCount: 0,
     leader: "",
-    startedAt: null,
+    startedAt: startedAt.toISOString(),
     deadlineAt: null,
     serverTime: now.toISOString(),
   });
@@ -486,7 +472,10 @@ async function mapAuctionStates(
             ? "Você"
             : auction.currentLeaderName,
         startedAt: toIso(auction.startedAt),
-        deadlineAt: toIso(auction.deadlineAt),
+        deadlineAt:
+          auction.status === "live" && auction.bidCount === 0
+            ? null
+            : toIso(auction.deadlineAt),
         usedBids,
         bids: bidRecords.map((bid) => ({
           number: bid.bidNumber,
@@ -782,7 +771,7 @@ export async function placeBid(userId: string, auctionId: number) {
         currentLeaderName: "Você",
         currentLeaderUserId: userId,
         deadlineAt,
-        nextBotAt: new Date(now.getTime() + 2_500 + Math.random() * 3_500),
+        nextBotAt: new Date(now.getTime() + 2_500 + Math.random() * 18_500),
       })
       .where(eq(auctionsTable.id, current.id));
 

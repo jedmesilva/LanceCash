@@ -1,2 +1,3 @@
 - [External database schema drift](external-database-schema.md) — keep unmodeled auth columns and tables until their ownership and data usage are confirmed.
 - [Responsive bid history](bid-history-layout.md) — keep bids in page-level vertical scroll and load history as the user approaches its end.
+- [Auction opening state](auction-opening-state.md) — scheduled auctions show “Em breve”; zero-bid live auctions show “Aberto” until the first manual bid.

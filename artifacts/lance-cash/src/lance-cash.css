@@ -108,6 +108,7 @@ button:disabled { cursor: default; }
 .lc-prize small { margin-right: .14em; font-size: .38em; letter-spacing: -.02em; vertical-align: .55em; }
 .lc-prize .decimal { margin: 0; font-size: 1em; letter-spacing: inherit; vertical-align: baseline; }
 .lc-current { position: relative; display: flex; align-items: center; gap: var(--lc-space-6); min-height: 92px; padding: 14px 18px 14px 14px; border: 2px solid var(--lc-text); border-radius: var(--lc-radius-feature); transition: background var(--lc-motion-standard), border-color var(--lc-motion-standard); }
+.lc-current.is-open { border-color: var(--lc-green); }
 .lc-current.is-new-bid { box-shadow: 0 0 0 3px color-mix(in srgb, var(--lc-lime) 42%, transparent); animation: lc-current-bid-pulse .82s cubic-bezier(.2, .8, .2, 1) both; }
 .lc-current.is-mine, .lc-current.is-ended { border-color: var(--lc-lime); background: var(--lc-lime); color: var(--lc-on-lime); }
 .lc-current.is-stale { border-color: var(--lc-alert); }
@@ -123,6 +124,8 @@ button:disabled { cursor: default; }
 .lc-ring .ring-bg { opacity: .18; }
 .lc-ring .ring-fill { stroke-dasharray: 100; transition: stroke-dashoffset 1s linear; }
 .lc-ring b { position: absolute; inset: 0; display: grid; place-items: center; font: 800 22px var(--lc-display); font-variant-numeric: tabular-nums; }
+.lc-ring.is-open { color: var(--lc-green); }
+.lc-ring.is-open b { font-size: 12px; }
 .lc-ring-check { position: absolute; inset: 0; display: grid; place-items: center; }
 .lc-ring.is-low { color: var(--lc-alert); animation: lc-pulse 1s infinite; }
 .lc-ring.is-delayed, .lc-ring.is-sync-error { color: #946000; }
