@@ -22,6 +22,7 @@ export * from './lanceCashAuctionPageDirection';
 export * from './lanceCashAuctionPagination';
 export * from './lanceCashAuctionStatus';
 export * from './lanceCashPrize';
+export * from './lanceCashPrizeRedemptionStatus';
 export * from './lanceCashState';
 export * from './lanceCashUser';
 export * from './lancePackage';

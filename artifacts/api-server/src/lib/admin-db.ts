@@ -15,11 +15,14 @@ import {
   packagePurchasesTable,
   pool,
   prizeRedemptionsTable,
+  redemptionStatusEnum,
   usersTable,
 } from "@workspace/db";
 
 type AuctionRow = typeof auctionsTable.$inferSelect;
 type AuctionStatus = "ended" | "upcoming";
+type RedemptionStatus = (typeof redemptionStatusEnum.enumValues)[number];
+type RedemptionUpdateStatus = Exclude<RedemptionStatus, "requested">;
 
 function mapAuction(auction: AuctionRow) {
   return {
@@ -324,4 +327,193 @@ export async function readAdminCash(input: { offset: number; limit: number }) {
     nextOffset: hasMore ? input.offset + rows.length : null,
     hasMore,
   };
+}
+
+type AdminRedemptionRow = {
+  id: string;
+  prizeId: string;
+  auctionId: number;
+  amountCents: number;
+  customerName: string;
+  customerEmail: string;
+  status: RedemptionStatus;
+  notes: string | null;
+  requestedAt: Date;
+  processedAt: Date | null;
+};
+
+function serializeAdminRedemption(row: AdminRedemptionRow) {
+  return {
+    ...row,
+    requestedAt: row.requestedAt.toISOString(),
+    processedAt: row.processedAt?.toISOString() ?? null,
+  };
+}
+
+export async function readAdminRedemptions(input: {
+  status?: RedemptionStatus;
+  search?: string;
+  offset: number;
+  limit: number;
+}) {
+  const conditions: string[] = [];
+  const values: (string | number)[] = [];
+
+  if (input.status) {
+    values.push(input.status);
+    conditions.push(`redemption.status::text = $${values.length}`);
+  }
+  if (input.search?.trim()) {
+    values.push(`%${input.search.trim()}%`);
+    const searchParam = `$${values.length}`;
+    conditions.push(`(
+      redemption.id::text ILIKE ${searchParam}
+      OR customer.name ILIKE ${searchParam}
+      OR customer.email ILIKE ${searchParam}
+      OR prize.auction_id::text ILIKE ${searchParam}
+    )`);
+  }
+  const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const pageValues = [...values, input.limit, input.offset];
+  const limitParam = `$${values.length + 1}`;
+  const offsetParam = `$${values.length + 2}`;
+
+  const [summaryResult, countResult, pageResult] = await Promise.all([
+    pool.query<{
+      requested: number;
+      processing: number;
+      fulfilled: number;
+      rejected: number;
+      totalCount: number;
+    }>(`
+      SELECT
+        COUNT(*) FILTER (WHERE status = 'requested')::int AS requested,
+        COUNT(*) FILTER (WHERE status = 'processing')::int AS processing,
+        COUNT(*) FILTER (WHERE status = 'fulfilled')::int AS fulfilled,
+        COUNT(*) FILTER (WHERE status = 'rejected')::int AS rejected,
+        COUNT(*)::int AS "totalCount"
+      FROM public.prize_redemptions
+    `),
+    pool.query<{ totalCount: number }>(
+      `
+        SELECT COUNT(*)::int AS "totalCount"
+        FROM public.prize_redemptions AS redemption
+        INNER JOIN public.auction_prizes AS prize
+          ON prize.id = redemption.prize_id
+        INNER JOIN public.users AS customer
+          ON customer.id = redemption.user_id
+        ${whereClause}
+      `,
+      values,
+    ),
+    pool.query<AdminRedemptionRow>(
+      `
+        SELECT
+          redemption.id::text AS id,
+          redemption.prize_id::text AS "prizeId",
+          prize.auction_id AS "auctionId",
+          prize.prize_amount_cents AS "amountCents",
+          customer.name AS "customerName",
+          customer.email AS "customerEmail",
+          redemption.status::text AS status,
+          redemption.notes AS notes,
+          redemption.requested_at AS "requestedAt",
+          redemption.processed_at AS "processedAt"
+        FROM public.prize_redemptions AS redemption
+        INNER JOIN public.auction_prizes AS prize
+          ON prize.id = redemption.prize_id
+        INNER JOIN public.users AS customer
+          ON customer.id = redemption.user_id
+        ${whereClause}
+        ORDER BY
+          CASE redemption.status::text
+            WHEN 'requested' THEN 0
+            WHEN 'processing' THEN 1
+            ELSE 2
+          END,
+          CASE
+            WHEN redemption.status IN ('requested', 'processing')
+              THEN redemption.requested_at
+          END ASC NULLS LAST,
+          redemption.requested_at DESC,
+          redemption.id DESC
+        LIMIT ${limitParam} OFFSET ${offsetParam}
+      `,
+      pageValues,
+    ),
+  ]);
+
+  const summary = summaryResult.rows[0];
+  const filteredCount = countResult.rows[0]?.totalCount ?? 0;
+  if (!summary) throw new Error("Redemption summary could not be loaded.");
+  const nextOffset = input.offset + pageResult.rows.length;
+  const hasMore = nextOffset < filteredCount;
+
+  return {
+    summary,
+    redemptions: pageResult.rows.map(serializeAdminRedemption),
+    totalCount: filteredCount,
+    nextOffset: hasMore ? nextOffset : null,
+    hasMore,
+  };
+}
+
+export async function updateAdminRedemption(
+  redemptionId: string,
+  nextStatus: RedemptionUpdateStatus,
+) {
+  return db.transaction(async (tx) => {
+    const [current] = await tx
+      .select()
+      .from(prizeRedemptionsTable)
+      .where(eq(prizeRedemptionsTable.id, redemptionId))
+      .limit(1)
+      .for("update");
+    if (!current) return { kind: "not_found" as const };
+
+    const allowedTransitions: Record<RedemptionStatus, RedemptionUpdateStatus[]> = {
+      requested: ["processing", "rejected"],
+      processing: ["fulfilled", "rejected"],
+      fulfilled: [],
+      rejected: [],
+    };
+    if (!allowedTransitions[current.status].includes(nextStatus)) {
+      return { kind: "conflict" as const };
+    }
+
+    const [updated] = await tx
+      .update(prizeRedemptionsTable)
+      .set({ status: nextStatus, processedAt: new Date() })
+      .where(eq(prizeRedemptionsTable.id, redemptionId))
+      .returning();
+    if (!updated) return { kind: "not_found" as const };
+
+    const [record] = await tx
+      .select({
+        id: prizeRedemptionsTable.id,
+        prizeId: prizeRedemptionsTable.prizeId,
+        auctionId: auctionPrizesTable.auctionId,
+        amountCents: auctionPrizesTable.prizeAmountCents,
+        customerName: usersTable.name,
+        customerEmail: usersTable.email,
+        status: prizeRedemptionsTable.status,
+        notes: prizeRedemptionsTable.notes,
+        requestedAt: prizeRedemptionsTable.requestedAt,
+        processedAt: prizeRedemptionsTable.processedAt,
+      })
+      .from(prizeRedemptionsTable)
+      .innerJoin(
+        auctionPrizesTable,
+        eq(auctionPrizesTable.id, prizeRedemptionsTable.prizeId),
+      )
+      .innerJoin(usersTable, eq(usersTable.id, prizeRedemptionsTable.userId))
+      .where(eq(prizeRedemptionsTable.id, redemptionId))
+      .limit(1);
+    if (!record) throw new Error("Updated redemption could not be loaded.");
+
+    return {
+      kind: "updated" as const,
+      redemption: serializeAdminRedemption(record),
+    };
+  });
 }

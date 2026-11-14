@@ -1198,7 +1198,7 @@ export const getRedeemLanceCashPrizeUrl = (auctionId: number,) => {
 }
 
 /**
- * @summary Mark a simulated prize as redeemed
+ * @summary Submit a prize redemption request for administrative review
  */
 export const redeemLanceCashPrize = async (auctionId: number, options?: Parameters<typeof customFetch>[1]): Promise<LanceCashState> => {
 
@@ -1250,7 +1250,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type RedeemLanceCashPrizeMutationVariables = {auctionId: number}
 
     /**
- * @summary Mark a simulated prize as redeemed
+ * @summary Submit a prize redemption request for administrative review
  */
 export const useRedeemLanceCashPrize = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof redeemLanceCashPrize>>, TError,RedeemLanceCashPrizeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}

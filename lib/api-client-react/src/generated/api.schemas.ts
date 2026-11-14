@@ -153,11 +153,22 @@ export interface LanceCashUser {
   email: string;
 }
 
+export type LanceCashPrizeRedemptionStatus = typeof LanceCashPrizeRedemptionStatus[keyof typeof LanceCashPrizeRedemptionStatus] | null;
+
+
+export const LanceCashPrizeRedemptionStatus = {
+  requested: 'requested',
+  processing: 'processing',
+  fulfilled: 'fulfilled',
+  rejected: 'rejected',
+} as const;
+
 export interface LanceCashPrize {
   auctionId: number;
   prize: number;
   wonAt: string;
   redeemed: boolean;
+  redemptionStatus: LanceCashPrizeRedemptionStatus;
 }
 
 export interface LanceCashAuctionPagination {

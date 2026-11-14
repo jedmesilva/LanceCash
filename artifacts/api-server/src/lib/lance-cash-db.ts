@@ -557,6 +557,7 @@ export async function readState(userId: string) {
         prizeAmountCents: auctionPrizesTable.prizeAmountCents,
         wonAt: auctionPrizesTable.wonAt,
         redemptionId: prizeRedemptionsTable.id,
+        redemptionStatus: prizeRedemptionsTable.status,
       })
       .from(auctionPrizesTable)
       .leftJoin(
@@ -590,6 +591,7 @@ export async function readState(userId: string) {
         prize: Math.round(prize.prizeAmountCents / 100),
         wonAt: prize.wonAt.toISOString(),
         redeemed: prize.redemptionId !== null,
+        redemptionStatus: prize.redemptionStatus,
       })),
     };
   }, { isolationLevel: "repeatable read" });
@@ -1017,13 +1019,11 @@ export async function redeemPrize(userId: string, auctionId: number) {
       return { error: "Este prêmio já foi resgatado." } as const;
     }
 
-    const now = new Date();
     await tx.insert(prizeRedemptionsTable).values({
       prizeId: prize.id,
       userId,
-      status: "fulfilled",
-      notes: "Resgate confirmado no protótipo",
-      processedAt: now,
+      status: "requested",
+      notes: null,
     });
     return { ok: true as const };
   });

@@ -192,3 +192,78 @@ export const GetAdminCashResponse = zod.object({
 })
 
 
+/**
+ * @summary Search and filter prize redemptions
+ */
+export const getAdminRedemptionsQuerySearchMax = 120;
+
+export const getAdminRedemptionsQueryOffsetDefault = 0;
+export const getAdminRedemptionsQueryOffsetMin = 0;
+export const getAdminRedemptionsQueryOffsetMax = 100000;
+
+export const getAdminRedemptionsQueryLimitDefault = 25;
+export const getAdminRedemptionsQueryLimitMax = 100;
+
+
+
+export const GetAdminRedemptionsQueryParams = zod.object({
+  "status": zod.enum(['requested', 'processing', 'fulfilled', 'rejected']).optional(),
+  "search": zod.coerce.string().max(getAdminRedemptionsQuerySearchMax).optional(),
+  "offset": zod.coerce.number().int().min(getAdminRedemptionsQueryOffsetMin).max(getAdminRedemptionsQueryOffsetMax).default(getAdminRedemptionsQueryOffsetDefault),
+  "limit": zod.coerce.number().int().min(1).max(getAdminRedemptionsQueryLimitMax).default(getAdminRedemptionsQueryLimitDefault)
+})
+
+export const GetAdminRedemptionsResponse = zod.object({
+  "summary": zod.object({
+  "requested": zod.number().int(),
+  "processing": zod.number().int(),
+  "fulfilled": zod.number().int(),
+  "rejected": zod.number().int(),
+  "totalCount": zod.number().int()
+}),
+  "redemptions": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "prizeId": zod.string().uuid(),
+  "auctionId": zod.number().int(),
+  "amountCents": zod.number().int(),
+  "customerName": zod.string(),
+  "customerEmail": zod.string().email(),
+  "status": zod.enum(['requested', 'processing', 'fulfilled', 'rejected']),
+  "notes": zod.string().nullable(),
+  "requestedAt": zod.coerce.date(),
+  "processedAt": zod.coerce.date().nullable()
+})),
+  "totalCount": zod.number().int(),
+  "nextOffset": zod.number().int().nullable(),
+  "hasMore": zod.boolean()
+})
+
+
+/**
+ * @summary Advance a redemption through its allowed administrative states
+ */
+export const updateAdminRedemptionPathRedemptionIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+
+
+export const UpdateAdminRedemptionParams = zod.object({
+  "redemptionId": zod.coerce.string().regex(updateAdminRedemptionPathRedemptionIdRegExp)
+})
+
+export const UpdateAdminRedemptionBody = zod.object({
+  "status": zod.enum(['processing', 'fulfilled', 'rejected'])
+})
+
+export const UpdateAdminRedemptionResponse = zod.object({
+  "id": zod.string().uuid(),
+  "prizeId": zod.string().uuid(),
+  "auctionId": zod.number().int(),
+  "amountCents": zod.number().int(),
+  "customerName": zod.string(),
+  "customerEmail": zod.string().email(),
+  "status": zod.enum(['requested', 'processing', 'fulfilled', 'rejected']),
+  "notes": zod.string().nullable(),
+  "requestedAt": zod.coerce.date(),
+  "processedAt": zod.coerce.date().nullable()
+})
+
+

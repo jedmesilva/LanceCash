@@ -5,10 +5,12 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { LanceCashPrizeRedemptionStatus } from './lanceCashPrizeRedemptionStatus';
 
 export interface LanceCashPrize {
   auctionId: number;
   prize: number;
   wonAt: Date;
   redeemed: boolean;
+  redemptionStatus: LanceCashPrizeRedemptionStatus;
 }

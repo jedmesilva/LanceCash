@@ -6,18 +6,25 @@ import {
   GetAdminAuctionBidsResponse,
   GetAdminCashQueryParams,
   GetAdminCashResponse,
+  GetAdminRedemptionsQueryParams,
+  GetAdminRedemptionsResponse,
   GetAdminAuctionsQueryParams,
   GetAdminAuctionsResponse,
   GetAdminOverviewResponse,
   GetAdminSessionResponse,
   PostAdminSessionBody,
   PostAdminSessionResponse,
+  UpdateAdminRedemptionBody,
+  UpdateAdminRedemptionParams,
+  UpdateAdminRedemptionResponse,
 } from "@workspace/admin-api-zod";
 import {
   readAdminCash,
+  readAdminRedemptions,
   readAdminAuctionBids,
   readAdminAuctionPage,
   readAdminOverview,
+  updateAdminRedemption,
 } from "../lib/admin-db";
 import {
   clearAdminSessionCookie,
@@ -133,6 +140,58 @@ router.get(
       limit: parsed.data.limit,
     });
     res.json(GetAdminCashResponse.parse(result));
+  },
+);
+
+router.get(
+  "/admin/redemptions",
+  requireAdminSession,
+  async (req, res): Promise<void> => {
+    const parsed = GetAdminRedemptionsQueryParams.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Parâmetros da lista de resgates inválidos." });
+      return;
+    }
+
+    const result = await readAdminRedemptions({
+      status: parsed.data.status,
+      search: parsed.data.search,
+      offset: parsed.data.offset,
+      limit: parsed.data.limit,
+    });
+    res.json(GetAdminRedemptionsResponse.parse(result));
+  },
+);
+
+router.patch(
+  "/admin/redemptions/:redemptionId",
+  requireAdminSession,
+  async (req, res): Promise<void> => {
+    const parsedParams = UpdateAdminRedemptionParams.safeParse(req.params);
+    if (!parsedParams.success) {
+      res.status(400).json({ error: "Identificador de resgate inválido." });
+      return;
+    }
+    const parsedBody = UpdateAdminRedemptionBody.safeParse(req.body);
+    if (!parsedBody.success) {
+      res.status(400).json({ error: "Atualização de resgate inválida." });
+      return;
+    }
+
+    const result = await updateAdminRedemption(
+      parsedParams.data.redemptionId,
+      parsedBody.data.status,
+    );
+    if (result.kind === "not_found") {
+      res.status(404).json({ error: "Resgate não encontrado." });
+      return;
+    }
+    if (result.kind === "conflict") {
+      res.status(409).json({ error: "Este resgate não pode mudar para esse status." });
+      return;
+    }
+
+    res.json(UpdateAdminRedemptionResponse.parse(result.redemption));
   },
 );
 

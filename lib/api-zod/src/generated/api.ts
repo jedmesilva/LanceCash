@@ -137,7 +137,8 @@ export const GetLanceCashStateResponse = zod.object({
   "auctionId": zod.number().int(),
   "prize": zod.number().int(),
   "wonAt": zod.coerce.date(),
-  "redeemed": zod.boolean()
+  "redeemed": zod.boolean(),
+  "redemptionStatus": zod.union([zod.enum(['requested', 'processing', 'fulfilled', 'rejected']),zod.null()])
 }))
 })
 
@@ -263,7 +264,8 @@ export const PlaceLanceCashBidResponse = zod.object({
   "auctionId": zod.number().int(),
   "prize": zod.number().int(),
   "wonAt": zod.coerce.date(),
-  "redeemed": zod.boolean()
+  "redeemed": zod.boolean(),
+  "redemptionStatus": zod.union([zod.enum(['requested', 'processing', 'fulfilled', 'rejected']),zod.null()])
 }))
 })
 
@@ -320,7 +322,8 @@ export const PurchaseLancePackageResponse = zod.object({
   "auctionId": zod.number().int(),
   "prize": zod.number().int(),
   "wonAt": zod.coerce.date(),
-  "redeemed": zod.boolean()
+  "redeemed": zod.boolean(),
+  "redemptionStatus": zod.union([zod.enum(['requested', 'processing', 'fulfilled', 'rejected']),zod.null()])
 }))
 })
 
@@ -381,7 +384,8 @@ export const UpdateLanceCashProfileResponse = zod.object({
   "auctionId": zod.number().int(),
   "prize": zod.number().int(),
   "wonAt": zod.coerce.date(),
-  "redeemed": zod.boolean()
+  "redeemed": zod.boolean(),
+  "redemptionStatus": zod.union([zod.enum(['requested', 'processing', 'fulfilled', 'rejected']),zod.null()])
 }))
 })
 
@@ -448,13 +452,14 @@ export const ChangeLanceCashPasswordResponse = zod.object({
   "auctionId": zod.number().int(),
   "prize": zod.number().int(),
   "wonAt": zod.coerce.date(),
-  "redeemed": zod.boolean()
+  "redeemed": zod.boolean(),
+  "redemptionStatus": zod.union([zod.enum(['requested', 'processing', 'fulfilled', 'rejected']),zod.null()])
 }))
 })
 
 
 /**
- * @summary Mark a simulated prize as redeemed
+ * @summary Submit a prize redemption request for administrative review
  */
 
 
@@ -507,7 +512,8 @@ export const RedeemLanceCashPrizeResponse = zod.object({
   "auctionId": zod.number().int(),
   "prize": zod.number().int(),
   "wonAt": zod.coerce.date(),
-  "redeemed": zod.boolean()
+  "redeemed": zod.boolean(),
+  "redemptionStatus": zod.union([zod.enum(['requested', 'processing', 'fulfilled', 'rejected']),zod.null()])
 }))
 })
 

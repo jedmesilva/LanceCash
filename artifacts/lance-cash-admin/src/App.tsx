@@ -9,6 +9,7 @@ import {
   AdminCashPage,
   AdminOverviewPage,
   AdminPreviousPage,
+  AdminRedemptionsPage,
   AdminUpcomingPage,
 } from '@/admin/admin';
 import {
@@ -27,6 +28,7 @@ function Router() {
     <RoutedErrorBoundary>
       <Switch>
         <Route path="/" component={AdminOverviewPage} />
+        <Route path="/redemptions" component={AdminRedemptionsPage} />
         <Route path="/cash" component={AdminCashPage} />
         <Route path="/previous" component={AdminPreviousPage} />
         <Route path="/upcoming" component={AdminUpcomingPage} />

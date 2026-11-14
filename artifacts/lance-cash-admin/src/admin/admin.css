@@ -269,3 +269,105 @@
   .adm-skeletons i, .adm-cash-metrics-skeleton i, .adm-spin { animation: none; }
   .adm-live-card, .adm-login-card { animation: none; }
 }
+
+.adm-redemption-panel { margin-top: 24px; overflow: hidden; border: 1px solid var(--adm-line); border-radius: 12px; background: var(--adm-surface); }
+.adm-redemption-panel.is-compact { margin-top: 23px; }
+.adm-redemption-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 18px 20px 15px; }
+.adm-redemption-panel-head h2 { margin: 5px 0 0; font: 700 19px 'Space Grotesk', sans-serif; letter-spacing: -.04em; }
+.adm-redemption-panel-head > .adm-count { white-space: nowrap; }
+.adm-redemption-list { padding: 0 18px; }
+.adm-redemption-row { position: relative; display: grid; grid-template-columns: minmax(190px, 1.5fr) minmax(130px, .8fr) minmax(150px, 1fr) auto minmax(190px, auto); align-items: center; gap: 18px; min-height: 88px; padding: 13px 2px; border-top: 1px solid #eceee5; }
+.adm-redemption-main { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.adm-redemption-icon { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border-radius: 9px; background: #eff4e4; color: #597a2d; }
+.adm-redemption-person, .adm-redemption-value, .adm-redemption-timing { display: flex; min-width: 0; flex-direction: column; gap: 4px; }
+.adm-redemption-person strong { overflow: hidden; color: #343a2e; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.adm-redemption-person > span { overflow: hidden; color: #81877a; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.adm-redemption-notes { overflow: hidden; color: #878b80; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.adm-redemption-value strong { color: #343b2b; font: 700 13px 'DM Mono', monospace; white-space: nowrap; }
+.adm-redemption-value small, .adm-redemption-timing { color: #858a7e; font: 9px 'DM Mono', monospace; }
+.adm-redemption-value small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-redemption-value i { padding: 0 3px; color: #b6baad; font-style: normal; }
+.adm-redemption-timing { line-height: 1.5; }
+.adm-redemption-timing small { color: #a0a499; }
+.adm-redemption-status { display: inline-flex; width: fit-content; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 5px; background: #f4f0e4; color: #8a6b31; font: 600 9px 'DM Mono', monospace; white-space: nowrap; }
+.adm-redemption-status i { width: 6px; height: 6px; border-radius: 50%; background: #c2943e; }
+.adm-redemption-status.is-processing { background: #edf1e3; color: #687a3e; }
+.adm-redemption-status.is-processing i { background: #8aa34d; }
+.adm-redemption-status.is-fulfilled { background: #edf5df; color: #52742b; }
+.adm-redemption-status.is-fulfilled i { background: #85ac3f; }
+.adm-redemption-status.is-rejected { background: #f8ebe6; color: #965b48; }
+.adm-redemption-status.is-rejected i { background: #b77a62; }
+.adm-redemption-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.adm-redemption-actions .adm-button { min-height: 31px; padding: 0 9px; font-size: 10px; white-space: nowrap; }
+.adm-action-approve, .adm-action-complete { border-color: #d7e4bd; background: #eff5e5; color: #526e2e; }
+.adm-action-approve:hover:not(:disabled), .adm-action-complete:hover:not(:disabled) { background: #e5efd4; }
+.adm-action-reject { border-color: #ecd5cb; background: #fff6f2; color: #995d49; }
+.adm-action-reject:hover:not(:disabled) { background: #f9eae4; }
+.adm-terminal-note { color: #a0a499; font: 9px 'DM Mono', monospace; white-space: nowrap; }
+.adm-redemption-row-error { grid-column: 1 / -1; margin-top: -5px; color: #995d49; font-size: 11px; }
+.adm-reject-confirm { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 12px 13px; border: 1px solid #ecd5cb; border-radius: 8px; background: #fff8f5; animation: adm-enter .18s ease both; }
+.adm-reject-confirm strong { color: #704437; font-size: 12px; }
+.adm-reject-confirm p { margin: 4px 0 0; color: #88695f; font-size: 10px; line-height: 1.45; }
+.adm-reject-confirm-actions { display: flex; flex: 0 0 auto; gap: 7px; }
+.adm-redemption-announcement { min-height: 0; color: #587535; font-size: 11px; }
+.adm-redemption-announcement:not(:empty) { padding: 8px 20px; border-top: 1px solid #edf0e7; background: #f5f8ed; }
+.adm-redemption-empty { padding: 25px 15px; }
+.adm-redemption-empty strong { color: #535a4a; font: 700 14px 'Space Grotesk', sans-serif; }
+.adm-redemption-quick-counts { display: flex; gap: 19px; padding: 0 20px 13px; color: #7f8577; font: 9px 'DM Mono', monospace; }
+.adm-redemption-quick-counts b { color: #3e4c2d; font-size: 12px; padding-right: 4px; }
+.adm-redemption-panel-foot { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 20px; border-top: 1px solid #eceee5; color: #8a8e83; font-size: 10px; }
+.adm-redemption-panel-foot .adm-detail-link { flex: 0 0 auto; font-size: 10px; }
+.adm-redemption-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 11px; margin: 0 0 15px; }
+.adm-redemption-metric { display: flex; flex-direction: column; padding: 14px 16px; border: 1px solid var(--adm-line); border-radius: 9px; background: var(--adm-surface); }
+.adm-redemption-metric span { color: #7e8477; font-size: 10px; font-weight: 600; }
+.adm-redemption-metric strong { margin-top: 8px; color: #39402f; font: 700 23px 'Space Grotesk', sans-serif; letter-spacing: -.04em; }
+.adm-redemption-metric.is-requested strong { color: #9a7839; }
+.adm-redemption-metric.is-processing strong { color: #667b3d; }
+.adm-redemption-metric.is-fulfilled strong { color: #50752c; }
+.adm-redemption-metric.is-rejected strong { color: #965b48; }
+.adm-redemption-ledger-tag { display: inline-flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid #dce2ce; border-radius: 7px; background: #fbfcf7; color: #64734b; font: 700 10px 'DM Mono', monospace; letter-spacing: .07em; white-space: nowrap; }
+.adm-redemption-filters { display: flex; align-items: flex-end; gap: 10px; padding: 0 20px 15px; }
+.adm-redemption-search { display: flex; height: 38px; flex: 1; align-items: center; gap: 9px; padding: 0 11px; border: 1px solid #dfe2d7; border-radius: 7px; background: #fcfcf8; color: #8c9283; }
+.adm-redemption-search:focus-within { border-color: #a8c75d; box-shadow: 0 0 0 3px rgba(172,205,83,.14); }
+.adm-redemption-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--adm-ink); font: 11px 'DM Sans', sans-serif; }
+.adm-redemption-search input::placeholder { color: #a3a89d; }
+.adm-redemption-status-filter { display: flex; flex-direction: column; gap: 5px; color: #858a7e; font: 9px 'DM Mono', monospace; }
+.adm-redemption-status-filter select { height: 38px; min-width: 170px; padding: 0 30px 0 10px; border: 1px solid #dfe2d7; border-radius: 7px; background: #fcfcf8; color: #4e5547; font: 11px 'DM Sans', sans-serif; }
+.adm-redemption-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 19px; border-top: 1px solid #e9ebe3; color: #858a7f; font: 10px 'DM Mono', monospace; }
+.adm-redemption-pagination > span { white-space: nowrap; }
+.adm-redemption-pagination i { padding: 0 4px; color: #b7baaf; font-style: normal; }
+.adm-redemption-pagination > div { display: flex; gap: 7px; }
+.adm-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+@media (max-width: 760px) {
+  .adm-nav { gap: 0; }
+  .adm-nav-link { font-size: 10px; padding: 0 8px; }
+  .adm-redemption-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .adm-redemption-metric { padding: 12px; }
+  .adm-redemption-metric strong { font-size: 20px; }
+  .adm-redemptions-heading { gap: 10px; }
+  .adm-redemption-ledger-tag { font-size: 0; gap: 0; padding: 9px; }
+  .adm-redemption-ledger-tag svg { width: 16px; height: 16px; }
+  .adm-redemption-panel-head { padding: 16px 13px 13px; }
+  .adm-redemption-panel-head h2 { font-size: 16px; }
+  .adm-redemption-list { padding: 0 13px; }
+  .adm-redemption-row { grid-template-columns: minmax(0, 1fr) auto; gap: 10px 12px; padding: 13px 0; }
+  .adm-redemption-main { grid-column: 1; }
+  .adm-redemption-value { grid-column: 2; grid-row: 1; align-items: flex-end; text-align: right; }
+  .adm-redemption-value small { max-width: 150px; }
+  .adm-redemption-timing { grid-column: 1; grid-row: 2; margin-left: 45px; }
+  .adm-redemption-status { grid-column: 2; grid-row: 2; justify-self: end; }
+  .adm-redemption-actions { grid-column: 1 / -1; justify-content: stretch; }
+  .adm-redemption-actions .adm-button { flex: 1; min-height: 36px; }
+  .adm-redemption-row-error, .adm-reject-confirm { grid-column: 1 / -1; }
+  .adm-reject-confirm { align-items: flex-start; flex-direction: column; }
+  .adm-reject-confirm-actions { width: 100%; }
+  .adm-reject-confirm-actions .adm-button { flex: 1; min-height: 36px; }
+  .adm-redemption-quick-counts { padding: 0 13px 13px; gap: 12px; flex-wrap: wrap; }
+  .adm-redemption-panel-foot { align-items: flex-start; flex-direction: column; padding: 13px; }
+  .adm-redemption-filters { align-items: stretch; flex-direction: column; padding: 0 13px 13px; }
+  .adm-redemption-search { flex: initial; }
+  .adm-redemption-status-filter select { width: 100%; }
+  .adm-redemption-pagination { align-items: flex-start; flex-direction: column; padding: 12px 13px; }
+  .adm-redemption-pagination > div { width: 100%; justify-content: space-between; }
+}

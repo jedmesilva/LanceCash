@@ -272,7 +272,7 @@ paths:
     post:
       operationId: redeemLanceCashPrize
       tags: [lance-cash]
-      summary: Mark a simulated prize as redeemed
+      summary: Submit a prize redemption request for administrative review
       security:
         - cookieAuth: []
       parameters:
@@ -499,7 +499,12 @@ components:
           format: date-time
         redeemed:
           type: boolean
-      required: [auctionId, prize, wonAt, redeemed]
+        redemptionStatus:
+          oneOf:
+            - type: string
+              enum: [requested, processing, fulfilled, rejected]
+            - type: "null"
+      required: [auctionId, prize, wonAt, redeemed, redemptionStatus]
     LanceCashState:
       type: object
       properties:

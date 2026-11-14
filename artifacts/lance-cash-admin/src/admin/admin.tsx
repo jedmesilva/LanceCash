@@ -6,6 +6,7 @@ import {
   AlertTriangle, ArrowLeft, ArrowRight, CalendarClock, ChevronRight,
   CircleDot, Clock3, KeyRound, LogOut, ShieldCheck, Users, LoaderCircle,
   ArrowDownLeft, ArrowUpRight, Banknote, ReceiptText, Landmark,
+  Search, Check, X, CheckCheck, Gift,
 } from 'lucide-react';
 import {
   getAdminAuctionBids,
@@ -13,15 +14,18 @@ import {
   getGetAdminAuctionsQueryKey,
   getGetAdminCashQueryKey,
   getGetAdminOverviewQueryKey,
+  getGetAdminRedemptionsQueryKey,
   getGetAdminSessionQueryKey,
   useDeleteAdminSession,
   useGetAdminAuctions,
   useGetAdminCash,
   useGetAdminOverview,
+  useGetAdminRedemptions,
   useGetAdminSession,
   usePostAdminSession,
+  useUpdateAdminRedemption,
 } from '@workspace/admin-api-client-react';
-import type { AdminAuctionSummary, AdminCashTransaction, GetAdminAuctionsParams, GetAdminCashParams } from '@workspace/admin-api-client-react';
+import type { AdminAuctionSummary, AdminCashTransaction, AdminRedemption, AdminRedemptionStatus, GetAdminAuctionsParams, GetAdminCashParams, GetAdminRedemptionsParams } from '@workspace/admin-api-client-react';
 import './admin.css';
 
 type AccessForm = { accessKey: string };
@@ -115,6 +119,7 @@ function AdminShell({ children }: { children: ReactNode }) {
         <Link href="/" className="adm-brand" data-testid="link-admin-home"><span className="adm-brand-mark">LC</span><span>Lance Cash<small>SALA DE CONTROLE</small></span></Link>
         <nav className="adm-nav" aria-label="Navegação administrativa">
           <Link href="/" className={`adm-nav-link${location === '/' ? ' active' : ''}`} data-testid="nav-overview">Visão geral</Link>
+          <Link href="/redemptions" className={`adm-nav-link${location === '/redemptions' ? ' active' : ''}`} data-testid="nav-redemptions">Resgates</Link>
           <Link href="/cash" className={`adm-nav-link${location === '/cash' ? ' active' : ''}`} data-testid="nav-cash">Caixa</Link>
           <Link href="/previous" className={`adm-nav-link${location === '/previous' ? ' active' : ''}`} data-testid="nav-previous">Anteriores</Link>
           <Link href="/upcoming" className={`adm-nav-link${location === '/upcoming' ? ' active' : ''}`} data-testid="nav-upcoming">Próximos</Link>
@@ -140,6 +145,124 @@ function AuctionList({ auctions, title, detail, empty }: { auctions: AdminAuctio
   </section>;
 }
 
+const redemptionStatusLabels: Record<AdminRedemptionStatus, string> = {
+  requested: 'Solicitado',
+  processing: 'Em processamento',
+  fulfilled: 'Concluído',
+  rejected: 'Rejeitado',
+};
+
+function RedemptionStatus({ status, id }: { status: AdminRedemptionStatus; id: string }) {
+  return <span className={`adm-redemption-status is-${status}`} data-testid={`status-redemption-${id}`}>
+    <i />{redemptionStatusLabels[status]}
+  </span>;
+}
+
+function RedemptionRow({ redemption, compact = false, announce }: {
+  redemption: AdminRedemption;
+  compact?: boolean;
+  announce: (message: string) => void;
+}) {
+  const queryClient = useQueryClient();
+  const update = useUpdateAdminRedemption();
+  const [confirmReject, setConfirmReject] = useState(false);
+  const [error, setError] = useState('');
+  const busy = update.isPending;
+  const updateStatus = (status: 'processing' | 'fulfilled' | 'rejected') => {
+    setError('');
+    update.mutate({ redemptionId: redemption.id, data: { status } }, {
+      onSuccess: () => {
+        const message = status === 'processing'
+          ? `Resgate de ${redemption.customerName} aprovado e enviado para processamento.`
+          : status === 'fulfilled'
+            ? `Resgate de ${redemption.customerName} marcado como concluído.`
+            : `Resgate de ${redemption.customerName} rejeitado.`;
+        announce(message);
+        setConfirmReject(false);
+        void queryClient.invalidateQueries({ queryKey: getGetAdminRedemptionsQueryKey() });
+        void queryClient.invalidateQueries({ queryKey: getGetAdminCashQueryKey() });
+      },
+      onError: () => setError('Não foi possível atualizar este resgate. Tente novamente.'),
+    });
+  };
+  return <article className={`adm-redemption-row${compact ? ' is-compact' : ''}`} data-testid={`row-redemption-${redemption.id}`}>
+    <div className="adm-redemption-main">
+      <span className="adm-redemption-icon"><Gift size={16} /></span>
+      <div className="adm-redemption-person">
+        <strong data-testid={`text-redemption-customer-${redemption.id}`}>{redemption.customerName}</strong>
+        <span>{redemption.customerEmail}</span>
+        {redemption.notes && <small className="adm-redemption-notes">{redemption.notes}</small>}
+      </div>
+    </div>
+    <div className="adm-redemption-value">
+      <strong data-testid={`text-redemption-amount-${redemption.id}`}>{centsMoney(redemption.amountCents)}</strong>
+      <small>Leilão #{redemption.auctionId} <i>/</i> prêmio {redemption.prizeId}</small>
+    </div>
+    <div className="adm-redemption-timing">
+      <span>Solicitado {dateTime(redemption.requestedAt)}</span>
+      {redemption.processedAt && <small>Atualizado {dateTime(redemption.processedAt)}</small>}
+    </div>
+    <RedemptionStatus status={redemption.status} id={redemption.id} />
+    <div className="adm-redemption-actions">
+      {redemption.status === 'requested' && <>
+        <button className="adm-button adm-action-approve" onClick={() => updateStatus('processing')} disabled={busy} data-testid={`button-approve-redemption-${redemption.id}`}>
+          {busy ? <LoaderCircle className="adm-spin" size={14} /> : <Check size={14} />} Aprovar
+        </button>
+        <button className="adm-button adm-action-reject" onClick={() => { setError(''); setConfirmReject(true); }} disabled={busy} data-testid={`button-reject-redemption-${redemption.id}`}>
+          <X size={14} /> Rejeitar
+        </button>
+      </>}
+      {redemption.status === 'processing' && <>
+        <button className="adm-button adm-action-complete" onClick={() => updateStatus('fulfilled')} disabled={busy} data-testid={`button-complete-redemption-${redemption.id}`}>
+          {busy ? <LoaderCircle className="adm-spin" size={14} /> : <CheckCheck size={14} />} Concluir
+        </button>
+        <button className="adm-button adm-action-reject" onClick={() => { setError(''); setConfirmReject(true); }} disabled={busy} data-testid={`button-reject-redemption-${redemption.id}`}>
+          <X size={14} /> Rejeitar
+        </button>
+      </>}
+      {(redemption.status === 'fulfilled' || redemption.status === 'rejected') && <span className="adm-terminal-note">Ação encerrada</span>}
+    </div>
+    {error && <div className="adm-redemption-row-error" role="alert" data-testid={`error-redemption-${redemption.id}`}>{error}</div>}
+    {confirmReject && <div className="adm-reject-confirm" role="alertdialog" aria-modal="true" aria-labelledby={`reject-title-${redemption.id}`}>
+      <div><strong id={`reject-title-${redemption.id}`}>Rejeitar este resgate?</strong><p>O pedido de {redemption.customerName} será encerrado como rejeitado. Esta ação não pode ser desfeita.</p></div>
+      <div className="adm-reject-confirm-actions">
+        <button className="adm-button adm-button-outline adm-button-small" onClick={() => setConfirmReject(false)} disabled={busy} data-testid={`button-cancel-reject-${redemption.id}`}>Voltar</button>
+        <button className="adm-button adm-action-reject" onClick={() => updateStatus('rejected')} disabled={busy} data-testid={`button-confirm-reject-${redemption.id}`}>
+          {busy ? <LoaderCircle className="adm-spin" size={14} /> : <X size={14} />} Confirmar rejeição
+        </button>
+      </div>
+    </div>}
+  </article>;
+}
+
+function RedemptionQueue({ limit, compact = false }: { limit: number; compact?: boolean }) {
+  const [announcement, setAnnouncement] = useState('');
+  const params = useMemo<GetAdminRedemptionsParams>(() => ({ limit }), [limit]);
+  const query = useGetAdminRedemptions(params, { query: { queryKey: getGetAdminRedemptionsQueryKey(params) } });
+  const response = query.data;
+  return <section className={`adm-redemption-panel${compact ? ' is-compact' : ''}`} aria-label="Fila de resgates">
+    <header className="adm-redemption-panel-head">
+      <div><p className="adm-eyebrow">PRÊMIOS / REVISÃO DA EQUIPE</p><h2>{compact ? 'Resgates para revisar' : 'Fila de resgates'}</h2></div>
+      {response && <span className="adm-count" data-testid="text-redemption-total">{fmt.format(response.summary.totalCount)} no total</span>}
+    </header>
+    {compact && response && <div className="adm-redemption-quick-counts" aria-label="Resumo dos resgates">
+      <span><b>{fmt.format(response.summary.requested)}</b> solicitados</span>
+      <span><b>{fmt.format(response.summary.processing)}</b> em processamento</span>
+    </div>}
+    <div className="adm-redemption-announcement" role="status" aria-live="polite" data-testid="status-redemption-action">{announcement}</div>
+    {query.isLoading ? <div className="adm-redemption-loading" aria-label="Carregando resgates" aria-busy="true"><Skeleton rows={compact ? 3 : 5} /></div>
+      : query.isError && !response ? <ErrorNotice retry={() => void query.refetch()} message="Não foi possível carregar a fila de resgates." />
+        : response?.redemptions.length ? <div className="adm-redemption-list">
+          {response.redemptions.map((redemption) => <RedemptionRow key={redemption.id} redemption={redemption} compact={compact} announce={setAnnouncement} />)}
+        </div>
+          : <div className="adm-empty adm-redemption-empty"><Gift size={21} /><strong>Nenhum resgate aguardando</strong><p>Os novos pedidos de prêmio aparecerão nesta fila.</p></div>}
+    {compact && <div className="adm-redemption-panel-foot">
+      <span>Ao aprovar, o pedido apenas começa o processamento; não há transferência de dinheiro.</span>
+      <Link href="/redemptions" className="adm-detail-link" data-testid="link-all-redemptions">Abrir fila completa <ArrowRight size={14} /></Link>
+    </div>}
+  </section>;
+}
+
 export function AdminOverviewPage() {
   const overview = useGetAdminOverview();
   return <AdminShell><>
@@ -159,8 +282,94 @@ export function AdminOverviewPage() {
         <AuctionList title="Leilões anteriores" detail="ARQUIVO" empty="Ainda não há leilões encerrados." auctions={overview.data.previousAuctions.slice(0, 5)} />
         <AuctionList title="Fila de próximos" detail="AGENDA" empty="Nenhum leilão agendado." auctions={overview.data.upcomingAuctions.slice(0, 5)} />
       </div>
+      <RedemptionQueue limit={5} compact />
       <div className="adm-list-links"><Link href="/previous" data-testid="link-all-previous">Todos os anteriores <ArrowRight size={14} /></Link><Link href="/upcoming" data-testid="link-all-upcoming">Ver fila completa <ArrowRight size={14} /></Link></div>
     </> : null}
+  </></AdminShell>;
+}
+
+export function AdminRedemptionsPage() {
+  const limit = 20;
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<AdminRedemptionStatus | ''>('');
+  const [offsets, setOffsets] = useState<number[]>([0]);
+  const offset = offsets[offsets.length - 1] ?? 0;
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+  useEffect(() => {
+    setOffsets([0]);
+  }, [search, status]);
+  const params = useMemo<GetAdminRedemptionsParams>(() => ({
+    limit,
+    offset,
+    ...(status ? { status } : {}),
+    ...(search ? { search } : {}),
+  }), [limit, offset, search, status]);
+  const query = useGetAdminRedemptions(params, { query: { queryKey: getGetAdminRedemptionsQueryKey(params) } });
+  const response = query.data;
+  const [announcement, setAnnouncement] = useState('');
+  const goNext = () => {
+    if (!response?.hasMore || response.nextOffset == null || query.isFetching) return;
+    setOffsets((current) => [...current, response.nextOffset!]);
+  };
+  const goPrev = () => {
+    if (offsets.length < 2 || query.isFetching) return;
+    setOffsets((current) => current.slice(0, -1));
+  };
+  const pageNumber = offsets.length;
+  return <AdminShell><>
+    <div className="adm-page-heading adm-redemptions-heading">
+      <div><p className="adm-eyebrow">PRÊMIOS / CONTROLE DE OPERAÇÕES</p><h1>Resgates</h1><p>Revise pedidos e registre o próximo passo — aprovação inicia o processamento, não o pagamento.</p></div>
+      <span className="adm-redemption-ledger-tag"><Gift size={15} /> FILA / REVISÃO</span>
+    </div>
+    {response && <section className="adm-redemption-summary" aria-label="Resumo dos resgates">
+      {([
+        ['requested', 'Solicitados'],
+        ['processing', 'Em processamento'],
+        ['fulfilled', 'Concluídos'],
+        ['rejected', 'Rejeitados'],
+      ] as const).map(([key, label]) => <div className={`adm-redemption-metric is-${key}`} key={key}>
+        <span>{label}</span><strong data-testid={`text-redemptions-${key}`}>{fmt.format(response.summary[key])}</strong>
+      </div>)}
+    </section>}
+    <section className="adm-redemption-panel adm-redemption-directory" aria-label="Lista completa de resgates">
+      <header className="adm-redemption-panel-head">
+        <div><p className="adm-eyebrow">REGISTROS / BUSCA NO SERVIDOR</p><h2>Todos os pedidos</h2></div>
+        {response && <span className="adm-count" data-testid="text-redemptions-count">{fmt.format(response.totalCount)} registros</span>}
+      </header>
+      <div className="adm-redemption-filters">
+        <label className="adm-redemption-search"><Search size={16} /><span className="adm-sr-only">Buscar resgates</span>
+          <input type="search" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Nome, e-mail ou identificador" data-testid="input-redemption-search" />
+        </label>
+        <label className="adm-redemption-status-filter"><span>Status</span>
+          <select value={status} onChange={(event) => setStatus(event.target.value as AdminRedemptionStatus | '')} data-testid="select-redemption-status">
+            <option value="">Todos os status</option>
+            <option value="requested">Solicitado</option>
+            <option value="processing">Em processamento</option>
+            <option value="fulfilled">Concluído</option>
+            <option value="rejected">Rejeitado</option>
+          </select>
+        </label>
+        {(searchInput || status) && <button className="adm-button adm-button-outline adm-button-small" onClick={() => { setSearchInput(''); setSearch(''); setStatus(''); }} data-testid="button-clear-redemption-filters">Limpar filtros</button>}
+      </div>
+      <div className="adm-redemption-announcement" role="status" aria-live="polite" data-testid="status-redemption-action">{announcement}</div>
+      {query.isLoading ? <div className="adm-redemption-loading" aria-label="Carregando resgates" aria-busy="true"><Skeleton rows={6} /></div>
+        : query.isError && !response ? <ErrorNotice retry={() => void query.refetch()} message="Não foi possível carregar os resgates." />
+          : <>
+            {query.isError && <ErrorNotice retry={() => void query.refetch()} message="Não foi possível atualizar esta página de resgates." />}
+            {response?.redemptions.length ? <div className="adm-redemption-list">
+              {response.redemptions.map((redemption) => <RedemptionRow key={redemption.id} redemption={redemption} announce={setAnnouncement} />)}
+            </div> : <div className="adm-empty adm-redemption-empty"><Gift size={21} /><strong>Nenhum pedido encontrado</strong><p>{search || status ? 'Ajuste a busca ou o status para encontrar resgates.' : 'Os pedidos de prêmio aparecerão aqui.'}</p></div>}
+            <footer className="adm-redemption-pagination">
+              <span>Página {pageNumber} <i>/</i> {fmt.format(response?.totalCount ?? 0)} registros</span>
+              <div><button className="adm-button adm-button-outline adm-button-small" onClick={goPrev} disabled={offsets.length < 2 || query.isFetching} data-testid="button-redemptions-previous"><ArrowLeft size={14} /> Anterior</button>
+                <button className="adm-button adm-button-outline adm-button-small" onClick={goNext} disabled={!response?.hasMore || query.isFetching || response.nextOffset == null} data-testid="button-redemptions-next">Próxima <ArrowRight size={14} /></button></div>
+            </footer>
+          </>}
+    </section>
   </></AdminShell>;
 }
 

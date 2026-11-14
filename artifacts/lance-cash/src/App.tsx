@@ -1119,7 +1119,7 @@ function LanceCash() {
     try {
       const next = await redeemMutation.mutateAsync({ auctionId: prize.auctionId });
       patchState(next);
-      announce(`Prêmio de ${BRL2.format(prize.prize)} resgatado`);
+      announce(`Solicitação de resgate do prêmio de ${BRL2.format(prize.prize)} enviada para análise`);
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Não foi possível resgatar o prêmio.');
     } finally {
@@ -1539,7 +1539,12 @@ function LanceCash() {
                       <span className="lc-won-value">
                         <b>{BRL2.format(prize.prize)}</b>
                         {prize.redeemed
-                          ? <small>Resgatado</small>
+                          ? <small className={`lc-redemption-status is-${prize.redemptionStatus ?? 'requested'}`}>
+                            {prize.redemptionStatus === 'requested' ? 'Aguardando análise'
+                              : prize.redemptionStatus === 'processing' ? 'Em processamento'
+                                : prize.redemptionStatus === 'rejected' ? 'Resgate não aprovado'
+                                  : 'Resgatado'}
+                          </small>
                           : <button className="lc-redeem" type="button" disabled={redeemingId === prize.auctionId || redeemMutation.isPending} onClick={() => void redeemPrize(prize)} data-testid={`button-redeem-${prize.auctionId}`}>
                             {redeemingId === prize.auctionId ? 'Resgatando…' : 'Resgatar'}
                           </button>}

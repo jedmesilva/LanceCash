@@ -30,10 +30,14 @@ import type {
   AdminAuctionPage,
   AdminCashResponse,
   AdminOverview,
+  AdminRedemption,
+  AdminRedemptionUpdate,
+  AdminRedemptionsResponse,
   AdminSessionResponse,
   GetAdminAuctionBidsParams,
   GetAdminAuctionsParams,
-  GetAdminCashParams
+  GetAdminCashParams,
+  GetAdminRedemptionsParams
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -747,4 +751,201 @@ export function useGetAdminCash<TData = Awaited<ReturnType<typeof getAdminCash>>
 
 
 
+
+export const getGetAdminRedemptionsUrl = (params?: GetAdminRedemptionsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/redemptions?${stringifiedParams}` : `/api/admin/redemptions`
+}
+
+/**
+ * @summary Search and filter prize redemptions
+ */
+export const getAdminRedemptions = async (params?: GetAdminRedemptionsParams, options?: RequestInit): Promise<AdminRedemptionsResponse> => {
+
+  return customFetch<AdminRedemptionsResponse>(getGetAdminRedemptionsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminRedemptionsQueryKey = (params?: GetAdminRedemptionsParams,) => {
+    return [
+    `/api/admin/redemptions`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminRedemptionsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminRedemptions>>, TError = void>(params?: GetAdminRedemptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminRedemptions>>, TError, TData>>, }
+) => {
+
+const {query: queryOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminRedemptionsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminRedemptions>>> = ({ signal }) => getAdminRedemptions(params, { signal });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminRedemptions>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAdminRedemptionsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminRedemptions>>>
+export type GetAdminRedemptionsQueryError = void
+
+
+export function useGetAdminRedemptions<TData = Awaited<ReturnType<typeof getAdminRedemptions>>, TError = void>(
+ params: undefined |  GetAdminRedemptionsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminRedemptions>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminRedemptions>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminRedemptions>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminRedemptions<TData = Awaited<ReturnType<typeof getAdminRedemptions>>, TError = void>(
+ params?: GetAdminRedemptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminRedemptions>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminRedemptions>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminRedemptions>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminRedemptions<TData = Awaited<ReturnType<typeof getAdminRedemptions>>, TError = void>(
+ params?: GetAdminRedemptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminRedemptions>>, TError, TData>>, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Search and filter prize redemptions
+ */
+
+export function useGetAdminRedemptions<TData = Awaited<ReturnType<typeof getAdminRedemptions>>, TError = void>(
+ params?: GetAdminRedemptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminRedemptions>>, TError, TData>>, }
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAdminRedemptionsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateAdminRedemptionUrl = (redemptionId: string,) => {
+
+
+
+
+  return `/api/admin/redemptions/${redemptionId}`
+}
+
+/**
+ * @summary Advance a redemption through its allowed administrative states
+ */
+export const updateAdminRedemption = async (redemptionId: string,
+    adminRedemptionUpdate: AdminRedemptionUpdate, options?: RequestInit): Promise<AdminRedemption> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AdminRedemption>(getUpdateAdminRedemptionUrl(redemptionId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(adminRedemptionUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminRedemptionMutationKey = () => ['updateAdminRedemption'] as const;
+
+export const getUpdateAdminRedemptionMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminRedemption>>, TError,UpdateAdminRedemptionMutationVariables, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminRedemption>>, TError,UpdateAdminRedemptionMutationVariables, TContext> => {
+
+const mutationKey = getUpdateAdminRedemptionMutationKey();
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminRedemption>>, UpdateAdminRedemptionMutationVariables> = (props) => {
+          const {redemptionId,data} = props ?? {};
+
+          return  updateAdminRedemption(redemptionId,data,)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminRedemptionMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminRedemption>>>
+    export type UpdateAdminRedemptionMutationBody = AdminRedemptionUpdate
+    export type UpdateAdminRedemptionMutationError = void
+    export type UpdateAdminRedemptionMutationVariables = {redemptionId: string;data: AdminRedemptionUpdate}
+
+    /**
+ * @summary Advance a redemption through its allowed administrative states
+ */
+export const useUpdateAdminRedemption = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminRedemption>>, TError,UpdateAdminRedemptionMutationVariables, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminRedemption>>,
+        TError,
+        UpdateAdminRedemptionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateAdminRedemptionMutationOptions(options), queryClient);
+    }
 

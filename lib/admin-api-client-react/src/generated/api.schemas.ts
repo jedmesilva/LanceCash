@@ -146,6 +146,61 @@ export interface AdminCashResponse {
   hasMore: boolean;
 }
 
+export type AdminRedemptionStatus = typeof AdminRedemptionStatus[keyof typeof AdminRedemptionStatus];
+
+
+export const AdminRedemptionStatus = {
+  requested: 'requested',
+  processing: 'processing',
+  fulfilled: 'fulfilled',
+  rejected: 'rejected',
+} as const;
+
+export interface AdminRedemption {
+  id: string;
+  prizeId: string;
+  auctionId: number;
+  amountCents: number;
+  customerName: string;
+  customerEmail: string;
+  status: AdminRedemptionStatus;
+  /** @nullable */
+  notes: string | null;
+  requestedAt: string;
+  /** @nullable */
+  processedAt: string | null;
+}
+
+export type AdminRedemptionUpdateStatus = typeof AdminRedemptionUpdateStatus[keyof typeof AdminRedemptionUpdateStatus];
+
+
+export const AdminRedemptionUpdateStatus = {
+  processing: 'processing',
+  fulfilled: 'fulfilled',
+  rejected: 'rejected',
+} as const;
+
+export interface AdminRedemptionUpdate {
+  status: AdminRedemptionUpdateStatus;
+}
+
+export interface AdminRedemptionSummary {
+  requested: number;
+  processing: number;
+  fulfilled: number;
+  rejected: number;
+  totalCount: number;
+}
+
+export interface AdminRedemptionsResponse {
+  summary: AdminRedemptionSummary;
+  redemptions: AdminRedemption[];
+  totalCount: number;
+  /** @nullable */
+  nextOffset: number | null;
+  hasMore: boolean;
+}
+
 export interface AdminAuctionPage {
   auctions: AdminAuctionSummary[];
   /** @nullable */
@@ -198,6 +253,24 @@ limit?: number;
 };
 
 export type GetAdminCashParams = {
+/**
+ * @minimum 0
+ * @maximum 100000
+ */
+offset?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export type GetAdminRedemptionsParams = {
+status?: AdminRedemptionStatus;
+/**
+ * @maxLength 120
+ */
+search?: string;
 /**
  * @minimum 0
  * @maximum 100000

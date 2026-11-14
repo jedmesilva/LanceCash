@@ -183,6 +183,87 @@ paths:
           description: Invalid cash request
         "401":
           description: Admin access required
+  /admin/redemptions:
+    get:
+      operationId: getAdminRedemptions
+      tags: [admin]
+      summary: Search and filter prize redemptions
+      security:
+        - adminCookieAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/AdminRedemptionStatus"
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 120
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 100000
+            default: 0
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        "200":
+          description: A filtered page of redemptions and overall status counts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminRedemptionsResponse"
+        "400":
+          description: Invalid redemption search
+        "401":
+          description: Admin access required
+  /admin/redemptions/{redemptionId}:
+    patch:
+      operationId: updateAdminRedemption
+      tags: [admin]
+      summary: Advance a redemption through its allowed administrative states
+      security:
+        - adminCookieAuth: []
+      parameters:
+        - name: redemptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminRedemptionUpdate"
+      responses:
+        "200":
+          description: Updated redemption record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminRedemption"
+        "400":
+          description: Invalid redemption update
+        "401":
+          description: Admin access required
+        "404":
+          description: Redemption not found
+        "409":
+          description: Redemption state transition is not allowed
 components:
   securitySchemes:
     adminCookieAuth:
@@ -340,6 +421,76 @@ components:
         hasMore:
           type: boolean
       required: [summary, transactions, totalCount, nextOffset, hasMore]
+    AdminRedemptionStatus:
+      type: string
+      enum: [requested, processing, fulfilled, rejected]
+    AdminRedemption:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        prizeId:
+          type: string
+          format: uuid
+        auctionId:
+          type: integer
+        amountCents:
+          type: integer
+        customerName:
+          type: string
+        customerEmail:
+          type: string
+          format: email
+        status:
+          $ref: "#/components/schemas/AdminRedemptionStatus"
+        notes:
+          type: ["string", "null"]
+        requestedAt:
+          type: string
+          format: date-time
+        processedAt:
+          type: ["string", "null"]
+          format: date-time
+      required: [id, prizeId, auctionId, amountCents, customerName, customerEmail, status, notes, requestedAt, processedAt]
+    AdminRedemptionUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum: [processing, fulfilled, rejected]
+      required: [status]
+    AdminRedemptionSummary:
+      type: object
+      properties:
+        requested:
+          type: integer
+        processing:
+          type: integer
+        fulfilled:
+          type: integer
+        rejected:
+          type: integer
+        totalCount:
+          type: integer
+      required: [requested, processing, fulfilled, rejected, totalCount]
+    AdminRedemptionsResponse:
+      type: object
+      properties:
+        summary:
+          $ref: "#/components/schemas/AdminRedemptionSummary"
+        redemptions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminRedemption"
+        totalCount:
+          type: integer
+        nextOffset:
+          type: ["integer", "null"]
+        hasMore:
+          type: boolean
+      required: [summary, redemptions, totalCount, nextOffset, hasMore]
     AdminAuctionPage:
       type: object
       properties:

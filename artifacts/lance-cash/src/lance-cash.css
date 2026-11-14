@@ -255,6 +255,10 @@ button:disabled { cursor: default; }
 .lc-won-value small { display: inline-block; margin-top: 6px; color: var(--lc-muted); font-size: 13px; font-weight: 600; }
 .lc-redeem { margin-top: 6px; padding: 7px 16px; border-radius: var(--lc-radius-pill); background: var(--lc-lime); color: var(--lc-on-lime); font: 800 14px var(--lc-body); }
 .lc-redeem:disabled { opacity: .6; }
+.lc-redemption-status { display: block; max-width: 180px; margin-top: 6px; color: var(--lc-muted); font-size: 12px; font-weight: 700; text-align: right; }
+.lc-redemption-status.is-requested, .lc-redemption-status.is-processing { color: #806319; }
+.lc-redemption-status.is-rejected { color: var(--lc-alert); }
+.lc-redemption-status.is-fulfilled { color: #56752f; }
 .lc-field { margin-top: 16px; }
 .lc-field label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 700; }
 .lc-field input { width: 100%; height: 52px; padding: 0 16px; border: 2px solid var(--lc-line); border-radius: var(--lc-radius-input); background: var(--lc-bg); color: var(--lc-text); font: 500 16px var(--lc-body); }
