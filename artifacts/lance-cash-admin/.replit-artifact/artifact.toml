@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/admin/"
+title = "Lance Cash Admin"
+description = "Painel administrativo independente para acompanhar leilões e seus históricos. O acesso é protegido por sessão administrativa e suas telas não fazem parte do client público."
+version = "1.0.0"
+id = "artifacts/lance-cash-admin"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/admin/" ]
+localPort = 21419
+
+[services.development]
+run = "pnpm --filter @workspace/lance-cash-admin run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/lance-cash-admin", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/lance-cash-admin/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21419"
+BASE_PATH = "/admin/"

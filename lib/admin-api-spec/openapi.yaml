@@ -1,0 +1,254 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: Private administration API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: admin
+    description: Protected auction administration operations
+paths:
+  /admin/session:
+    get:
+      operationId: getAdminSession
+      tags: [admin]
+      summary: Check whether the admin access session is active
+      responses:
+        "200":
+          description: Current admin session status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSessionResponse"
+    post:
+      operationId: postAdminSession
+      tags: [admin]
+      summary: Create an admin session using the shared access key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminAccessInput"
+      responses:
+        "200":
+          description: Admin session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSessionResponse"
+        "400":
+          description: Invalid access key format
+        "401":
+          description: Access key rejected
+        "429":
+          description: Too many attempts
+    delete:
+      operationId: deleteAdminSession
+      tags: [admin]
+      summary: End the admin access session
+      responses:
+        "204":
+          description: Admin session ended
+  /admin/overview:
+    get:
+      operationId: getAdminOverview
+      tags: [admin]
+      summary: Get current auction monitoring and neighboring auction lists
+      security:
+        - adminCookieAuth: []
+      responses:
+        "200":
+          description: Admin dashboard overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminOverview"
+        "401":
+          description: Admin access required
+  /admin/auctions:
+    get:
+      operationId: getAdminAuctions
+      tags: [admin]
+      summary: List past or upcoming auctions
+      security:
+        - adminCookieAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [ended, upcoming]
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+      responses:
+        "200":
+          description: A page of auction records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAuctionPage"
+        "400":
+          description: Invalid auction list request
+        "401":
+          description: Admin access required
+  /admin/auction-bids:
+    get:
+      operationId: getAdminAuctionBids
+      tags: [admin]
+      summary: List every page of bids for one auction
+      security:
+        - adminCookieAuth: []
+      parameters:
+        - name: auctionId
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+        - name: before
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        "200":
+          description: Auction summary and bid records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAuctionBidsPage"
+        "400":
+          description: Invalid bid history request
+        "401":
+          description: Admin access required
+        "404":
+          description: Auction not found
+components:
+  securitySchemes:
+    adminCookieAuth:
+      type: apiKey
+      in: cookie
+      name: lance_cash_admin
+  schemas:
+    AdminAccessInput:
+      type: object
+      additionalProperties: false
+      properties:
+        accessKey:
+          type: string
+          minLength: 32
+          maxLength: 512
+      required: [accessKey]
+    AdminSessionResponse:
+      type: object
+      properties:
+        authenticated:
+          type: boolean
+      required: [authenticated]
+    AdminAuctionSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        prize:
+          type: integer
+        status:
+          type: string
+          enum: [live, ended, upcoming]
+        bidCount:
+          type: integer
+        leader:
+          type: string
+        startedAt:
+          type: ["string", "null"]
+          format: date-time
+        endedAt:
+          type: ["string", "null"]
+          format: date-time
+      required: [id, prize, status, bidCount, leader, startedAt, endedAt]
+    AdminAuctionBid:
+      type: object
+      properties:
+        id:
+          type: integer
+        number:
+          type: integer
+        leader:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, number, leader, createdAt]
+    AdminAuctionBidsPage:
+      type: object
+      properties:
+        auction:
+          $ref: "#/components/schemas/AdminAuctionSummary"
+        bids:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminAuctionBid"
+        nextBefore:
+          type: ["integer", "null"]
+        hasMore:
+          type: boolean
+      required: [auction, bids, nextBefore, hasMore]
+    AdminAuctionPage:
+      type: object
+      properties:
+        auctions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminAuctionSummary"
+        nextCursor:
+          type: ["integer", "null"]
+        hasMore:
+          type: boolean
+      required: [auctions, nextCursor, hasMore]
+    AdminOverview:
+      type: object
+      properties:
+        currentAuction:
+          oneOf:
+            - $ref: "#/components/schemas/AdminAuctionSummary"
+            - type: "null"
+        watcherCount:
+          type: integer
+        previousAuctions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminAuctionSummary"
+        upcomingAuctions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminAuctionSummary"
+      required:
+        - currentAuction
+        - watcherCount
+        - previousAuctions
+        - upcomingAuctions

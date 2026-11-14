@@ -10,14 +10,11 @@ import {
   GetAdminSessionResponse,
   PostAdminSessionBody,
   PostAdminSessionResponse,
-  UpdateAdminSystemBidsSettingsBody,
-  UpdateAdminSystemBidsSettingsResponse,
-} from "@workspace/api-zod";
+} from "@workspace/admin-api-zod";
 import {
   readAdminAuctionBids,
   readAdminAuctionPage,
   readAdminOverview,
-  updateSystemBidsEnabled,
 } from "../lib/admin-db";
 import {
   clearAdminSessionCookie,
@@ -107,7 +104,6 @@ router.get(
 
     const result = await readAdminAuctionBids({
       auctionId: parsed.data.auctionId,
-      search: parsed.data.search,
       before: parsed.data.before,
       limit: parsed.data.limit,
     });
@@ -116,21 +112,6 @@ router.get(
       return;
     }
     res.json(GetAdminAuctionBidsResponse.parse(result));
-  },
-);
-
-router.patch(
-  "/admin/settings/system-bids",
-  requireAdminSession,
-  async (req, res): Promise<void> => {
-    const parsed = UpdateAdminSystemBidsSettingsBody.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: "Configuração inválida." });
-      return;
-    }
-
-    const settings = await updateSystemBidsEnabled(parsed.data.enabled);
-    res.json(UpdateAdminSystemBidsSettingsResponse.parse(settings));
   },
 );
 

@@ -10,7 +10,13 @@
       "path": "./lib/api-client-react"
     },
     {
+      "path": "./lib/admin-api-client-react"
+    },
+    {
       "path": "./lib/api-zod"
+    },
+    {
+      "path": "./lib/admin-api-zod"
     }
   ]
 }
