@@ -5,8 +5,10 @@ ALTER TABLE public.auction_bids
 
 UPDATE public.auction_bids
 SET source = CASE
+  WHEN is_automated AND user_id IS NOT NULL THEN 'user_automation'
   WHEN is_automated THEN 'system_automation'
-  ELSE 'user_manual'
+  WHEN user_id IS NOT NULL THEN 'user_manual'
+  ELSE 'system_admin'
 END
 WHERE source IS NULL;
 
