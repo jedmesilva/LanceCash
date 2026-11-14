@@ -148,11 +148,7 @@ function SystemSettings({ enabled, onClose }: { enabled: boolean; onClose: () =>
         <p>{nextValue ? 'System bids are enabled.' : 'System bids are paused.'}</p>
       </div>
       <div className="adm-switch-control">
-        <span className={`adm-switch-state ${nextValue ? 'is-on' : 'is-off'}`} aria-hidden="true">
-          {nextValue ? 'ON' : 'OFF'}
-        </span>
         <Switch
-          className="adm-automation-switch"
           checked={nextValue}
           onCheckedChange={setNextValue}
           aria-label={nextValue ? 'Disable automated system bids' : 'Enable automated system bids'}
