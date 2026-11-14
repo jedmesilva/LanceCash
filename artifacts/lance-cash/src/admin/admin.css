@@ -120,7 +120,15 @@
 .adm-skeletons { display: flex; flex-direction: column; gap: 10px; padding: 13px 0; }
 .adm-skeletons i { display: block; height: 44px; border-radius: 6px; background: linear-gradient(90deg, #e9ece2 20%, #f2f4ec 45%, #e9ece2 70%); background-size: 220% 100%; animation: adm-shimmer 1.4s ease infinite; }
 @keyframes adm-shimmer { to { background-position: -220% 0; } }
-.adm-dialog { border-color: var(--adm-line); border-radius: 12px !important; background: var(--adm-surface); }
+.adm-dialog {
+  --adm-ink: #171a12;
+  --adm-line: #dfe2d6;
+  --adm-surface: #fffefa;
+  border: 1px solid var(--adm-line, #dfe2d6);
+  border-radius: 12px !important;
+  background: var(--adm-surface, #fffefa);
+  color: var(--adm-ink);
+}
 .adm-dialog h2 { font: 750 25px var(--lc-display, sans-serif); letter-spacing: -.04em; margin: 6px 0 2px; }
 .adm-dialog [data-slot="dialog-description"] { color: #74796d; }
 .adm-switch-row { padding: 15px 0; border-top: 1px solid var(--adm-line); border-bottom: 1px solid var(--adm-line); display: flex; justify-content: space-between; align-items: center; gap: 18px; }
