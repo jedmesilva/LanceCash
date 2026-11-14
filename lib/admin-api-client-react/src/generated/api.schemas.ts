@@ -64,6 +64,79 @@ export interface AdminAuctionBidsPage {
   hasMore: boolean;
 }
 
+export type AdminCashDirection = typeof AdminCashDirection[keyof typeof AdminCashDirection];
+
+
+export const AdminCashDirection = {
+  inflow: 'inflow',
+  outflow: 'outflow',
+  pending: 'pending',
+  excluded: 'excluded',
+} as const;
+
+export type AdminCashTransactionKind = typeof AdminCashTransactionKind[keyof typeof AdminCashTransactionKind];
+
+
+export const AdminCashTransactionKind = {
+  package_purchase: 'package_purchase',
+  prize_redemption: 'prize_redemption',
+} as const;
+
+export type AdminCashTransactionStatus = typeof AdminCashTransactionStatus[keyof typeof AdminCashTransactionStatus];
+
+
+export const AdminCashTransactionStatus = {
+  pending: 'pending',
+  paid: 'paid',
+  failed: 'failed',
+  refunded: 'refunded',
+  requested: 'requested',
+  processing: 'processing',
+  fulfilled: 'fulfilled',
+  rejected: 'rejected',
+} as const;
+
+export interface AdminCashTransaction {
+  id: string;
+  kind: AdminCashTransactionKind;
+  direction: AdminCashDirection;
+  status: AdminCashTransactionStatus;
+  amountCents: number;
+  description: string;
+  customerName: string;
+  /** @nullable */
+  paymentProvider: string | null;
+  createdAt: string;
+  /** @nullable */
+  settledAt: string | null;
+  /** @nullable */
+  packageId: string | null;
+  /** @nullable */
+  packageBids: number | null;
+  /** @nullable */
+  auctionId: number | null;
+}
+
+export interface AdminCashSummary {
+  inflowCents: number;
+  refundCents: number;
+  prizeOutflowCents: number;
+  outflowCents: number;
+  netCents: number;
+  pendingInflowCents: number;
+  pendingOutflowCents: number;
+  transactionCount: number;
+}
+
+export interface AdminCashResponse {
+  summary: AdminCashSummary;
+  transactions: AdminCashTransaction[];
+  totalCount: number;
+  /** @nullable */
+  nextOffset: number | null;
+  hasMore: boolean;
+}
+
 export interface AdminAuctionPage {
   auctions: AdminAuctionSummary[];
   /** @nullable */
@@ -108,6 +181,19 @@ auctionId: number;
  * @minimum 1
  */
 before?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export type GetAdminCashParams = {
+/**
+ * @minimum 0
+ * @maximum 100000
+ */
+offset?: number;
 /**
  * @minimum 1
  * @maximum 100

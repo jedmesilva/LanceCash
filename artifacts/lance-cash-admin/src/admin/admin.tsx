@@ -5,20 +5,23 @@ import { Link, useLocation, useParams } from 'wouter';
 import {
   AlertTriangle, ArrowLeft, ArrowRight, CalendarClock, ChevronRight,
   CircleDot, Clock3, KeyRound, LogOut, ShieldCheck, Users, LoaderCircle,
+  ArrowDownLeft, ArrowUpRight, Banknote, ReceiptText, Landmark,
 } from 'lucide-react';
 import {
   getAdminAuctionBids,
   getGetAdminAuctionBidsQueryKey,
   getGetAdminAuctionsQueryKey,
+  getGetAdminCashQueryKey,
   getGetAdminOverviewQueryKey,
   getGetAdminSessionQueryKey,
   useDeleteAdminSession,
   useGetAdminAuctions,
+  useGetAdminCash,
   useGetAdminOverview,
   useGetAdminSession,
   usePostAdminSession,
 } from '@workspace/admin-api-client-react';
-import type { AdminAuctionSummary, GetAdminAuctionsParams } from '@workspace/admin-api-client-react';
+import type { AdminAuctionSummary, AdminCashTransaction, GetAdminAuctionsParams, GetAdminCashParams } from '@workspace/admin-api-client-react';
 import './admin.css';
 
 type AccessForm = { accessKey: string };
@@ -112,6 +115,7 @@ function AdminShell({ children }: { children: ReactNode }) {
         <Link href="/" className="adm-brand" data-testid="link-admin-home"><span className="adm-brand-mark">LC</span><span>Lance Cash<small>SALA DE CONTROLE</small></span></Link>
         <nav className="adm-nav" aria-label="Navegação administrativa">
           <Link href="/" className={`adm-nav-link${location === '/' ? ' active' : ''}`} data-testid="nav-overview">Visão geral</Link>
+          <Link href="/cash" className={`adm-nav-link${location === '/cash' ? ' active' : ''}`} data-testid="nav-cash">Caixa</Link>
           <Link href="/previous" className={`adm-nav-link${location === '/previous' ? ' active' : ''}`} data-testid="nav-previous">Anteriores</Link>
           <Link href="/upcoming" className={`adm-nav-link${location === '/upcoming' ? ' active' : ''}`} data-testid="nav-upcoming">Próximos</Link>
         </nav>
@@ -156,6 +160,145 @@ export function AdminOverviewPage() {
         <AuctionList title="Fila de próximos" detail="AGENDA" empty="Nenhum leilão agendado." auctions={overview.data.upcomingAuctions.slice(0, 5)} />
       </div>
       <div className="adm-list-links"><Link href="/previous" data-testid="link-all-previous">Todos os anteriores <ArrowRight size={14} /></Link><Link href="/upcoming" data-testid="link-all-upcoming">Ver fila completa <ArrowRight size={14} /></Link></div>
+    </> : null}
+  </></AdminShell>;
+}
+
+const cashMoney = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+const cashStatusLabels: Record<AdminCashTransaction['status'], string> = {
+  pending: 'Pendente',
+  paid: 'Pago',
+  failed: 'Falhou',
+  refunded: 'Reembolsado',
+  requested: 'Solicitado',
+  processing: 'Em processamento',
+  fulfilled: 'Concluído',
+  rejected: 'Rejeitado',
+};
+const cashKindLabels: Record<AdminCashTransaction['kind'], string> = {
+  package_purchase: 'Compra de pacote',
+  prize_redemption: 'Resgate de prêmio',
+};
+const cashDirectionLabels: Record<AdminCashTransaction['direction'], string> = {
+  inflow: 'Entrada confirmada',
+  outflow: 'Saída confirmada',
+  pending: 'Pendente',
+  excluded: 'Fora dos totais',
+};
+const centsMoney = (value: number) => cashMoney.format(value / 100);
+
+function CashMetric({ label, amount, detail, tone, testId }: {
+  label: string;
+  amount: number;
+  detail: string;
+  tone: 'inflow' | 'outflow' | 'net';
+  testId: string;
+}) {
+  return <div className={`adm-cash-metric is-${tone}`}>
+    <span>{label}</span>
+    <strong data-testid={testId}>{centsMoney(amount)}</strong>
+    <small>{detail}</small>
+  </div>;
+}
+
+function CashTransactionRow({ transaction }: { transaction: AdminCashTransaction }) {
+  const sign = transaction.direction === 'inflow' ? '+' : transaction.direction === 'outflow' ? '−' : '';
+  return <article className="adm-cash-row" data-testid={`row-cash-transaction-${transaction.id}`}>
+    <div className="adm-cash-transaction-main">
+      <span className={`adm-cash-kind-icon is-${transaction.kind}`}>
+        {transaction.kind === 'package_purchase' ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
+      </span>
+      <div className="adm-cash-description">
+        <strong data-testid={`text-cash-description-${transaction.id}`}>{transaction.description || cashKindLabels[transaction.kind]}</strong>
+        <span>{transaction.customerName || 'Cliente não identificado'} <i>/</i> {cashKindLabels[transaction.kind]}</span>
+        {transaction.packageBids != null && <small>{fmt.format(transaction.packageBids)} lances no pacote</small>}
+      </div>
+    </div>
+    <div className="adm-cash-channel">
+      <span>{transaction.paymentProvider || (transaction.kind === 'prize_redemption' ? 'Resgate simulado' : 'Provedor não informado')}</span>
+      <small>{transaction.auctionId != null ? `Leilão #${transaction.auctionId}` : transaction.packageId ? `Pacote ${transaction.packageId}` : '—'}</small>
+    </div>
+    <div className="adm-cash-timing">
+      <span>{dateTime(transaction.createdAt)}</span>
+      <small>{transaction.settledAt ? `Liquidado ${dateTime(transaction.settledAt)}` : 'Sem liquidação registrada'}</small>
+    </div>
+    <div className="adm-cash-amount">
+      <strong className={`is-${transaction.direction}`} data-testid={`text-cash-amount-${transaction.id}`}>
+        {sign}{centsMoney(transaction.amountCents)}
+      </strong>
+      <small>{cashDirectionLabels[transaction.direction]}</small>
+    </div>
+    <span className={`adm-cash-status is-${transaction.status}`} data-testid={`status-cash-${transaction.id}`}>{cashStatusLabels[transaction.status]}</span>
+  </article>;
+}
+
+export function AdminCashPage() {
+  const limit = 25;
+  const [offsets, setOffsets] = useState<number[]>([0]);
+  const offset = offsets[offsets.length - 1] ?? 0;
+  const params = useMemo<GetAdminCashParams>(() => ({ offset, limit }), [offset]);
+  const cash = useGetAdminCash(params, { query: { queryKey: getGetAdminCashQueryKey(params) } });
+  const response = cash.data;
+  const pageNumber = offsets.length;
+  const goNext = () => {
+    if (!response?.hasMore || response.nextOffset == null || cash.isFetching) return;
+    setOffsets((current) => [...current, response.nextOffset!]);
+  };
+  const goPrev = () => {
+    if (offsets.length < 2 || cash.isFetching) return;
+    setOffsets((current) => current.slice(0, -1));
+  };
+
+  return <AdminShell><>
+    <div className="adm-page-heading adm-cash-heading">
+      <div>
+        <p className="adm-eyebrow">FINANÇAS / REGISTRO OPERACIONAL</p>
+        <h1>Caixa</h1>
+        <p>Compras de pacotes e resgates de prêmios, em um só registro.</p>
+      </div>
+      <span className="adm-cash-ledger-tag"><ReceiptText size={15} /> LEDGER / BRL</span>
+    </div>
+
+    <aside className="adm-cash-simulation" role="note" data-testid="notice-cash-simulated">
+      <span className="adm-cash-simulation-icon"><Landmark size={17} /></span>
+      <div><strong>Valores simulados — não representam recebimentos reais.</strong><p>Pix e resgates de prêmios neste projeto são simulações. Os valores abaixo são modelados a partir dos registros; não são comprovantes nem saldo bancário.</p></div>
+    </aside>
+
+    {cash.isLoading ? <section className="adm-cash-loading" aria-label="Carregando resumo e transações" aria-busy="true">
+      <div className="adm-cash-metrics-skeleton">{Array.from({ length: 4 }, (_, index) => <i key={index} />)}</div>
+      <Skeleton rows={6} />
+    </section> : cash.isError && !response ? <ErrorNotice retry={() => void cash.refetch()} message="Não foi possível carregar o ledger de caixa." /> : response ? <>
+      <section className="adm-cash-summary" aria-label="Resumo do caixa">
+        <CashMetric label="Entradas confirmadas" amount={response.summary.inflowCents} detail="Pacotes pagos" tone="inflow" testId="text-cash-inflow" />
+        <CashMetric label="Reembolsos" amount={response.summary.refundCents} detail="Compras reembolsadas" tone="outflow" testId="text-cash-refunds" />
+        <CashMetric label="Prêmios resgatados" amount={response.summary.prizeOutflowCents} detail="Resgates concluídos" tone="outflow" testId="text-cash-prize-outflow" />
+        <CashMetric label="Saldo líquido modelado" amount={response.summary.netCents} detail="Entradas menos saídas confirmadas" tone="net" testId="text-cash-net" />
+      </section>
+      <section className="adm-cash-pending" data-testid="panel-cash-pending">
+        <div><span className="adm-cash-pending-dot" /><span><b>Em aberto</b><small>Não incluído nos totais confirmados</small></span></div>
+        <span><small>Entradas</small><strong data-testid="text-cash-pending-inflow">{centsMoney(response.summary.pendingInflowCents)}</strong></span>
+        <span><small>Saídas</small><strong data-testid="text-cash-pending-outflow">{centsMoney(response.summary.pendingOutflowCents)}</strong></span>
+        <span className="adm-cash-count"><small>Registros no total</small><strong data-testid="text-cash-transaction-count">{fmt.format(response.summary.transactionCount)}</strong></span>
+      </section>
+
+      {cash.isError && <ErrorNotice retry={() => void cash.refetch()} message="Não foi possível atualizar a página atual do ledger." />}
+      <section className="adm-cash-ledger" aria-label="Transações de caixa">
+        <header className="adm-cash-ledger-head">
+          <div><p className="adm-eyebrow">MOVIMENTAÇÕES</p><h2>Transações registradas</h2></div>
+          <span data-testid="text-cash-page-total">{fmt.format(response.totalCount)} registros</span>
+        </header>
+        {response.transactions.length ? <>
+          <div className="adm-cash-columns" aria-hidden="true"><span>Descrição</span><span>Origem</span><span>Registrado</span><span>Valor modelado</span><span>Status</span></div>
+          <div className="adm-cash-list">{response.transactions.map((transaction) => <CashTransactionRow key={transaction.id} transaction={transaction} />)}</div>
+        </> : <div className="adm-empty adm-cash-empty"><Banknote size={22} /><strong>Nenhuma transação registrada</strong><p>Quando houver compras ou resgates, eles aparecerão aqui.</p></div>}
+        <footer className="adm-cash-pagination">
+          <span>Página {pageNumber} <i>/</i> {fmt.format(response.totalCount)} registros</span>
+          <div>
+            <button className="adm-button adm-button-outline adm-button-small" onClick={goPrev} disabled={offsets.length < 2 || cash.isFetching} data-testid="button-cash-previous"><ArrowLeft size={14} /> Anterior</button>
+            <button className="adm-button adm-button-outline adm-button-small" onClick={goNext} disabled={!response.hasMore || cash.isFetching || response.nextOffset == null} data-testid="button-cash-next">Próxima <ArrowRight size={14} /></button>
+          </div>
+        </footer>
+      </section>
     </> : null}
   </></AdminShell>;
 }

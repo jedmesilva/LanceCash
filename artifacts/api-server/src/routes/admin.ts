@@ -4,6 +4,8 @@ import {
   DeleteAdminSessionResponse,
   GetAdminAuctionBidsQueryParams,
   GetAdminAuctionBidsResponse,
+  GetAdminCashQueryParams,
+  GetAdminCashResponse,
   GetAdminAuctionsQueryParams,
   GetAdminAuctionsResponse,
   GetAdminOverviewResponse,
@@ -12,6 +14,7 @@ import {
   PostAdminSessionResponse,
 } from "@workspace/admin-api-zod";
 import {
+  readAdminCash,
   readAdminAuctionBids,
   readAdminAuctionPage,
   readAdminOverview,
@@ -112,6 +115,24 @@ router.get(
       return;
     }
     res.json(GetAdminAuctionBidsResponse.parse(result));
+  },
+);
+
+router.get(
+  "/admin/cash",
+  requireAdminSession,
+  async (req, res): Promise<void> => {
+    const parsed = GetAdminCashQueryParams.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Parâmetros do caixa inválidos." });
+      return;
+    }
+
+    const result = await readAdminCash({
+      offset: parsed.data.offset,
+      limit: parsed.data.limit,
+    });
+    res.json(GetAdminCashResponse.parse(result));
   },
 );
 

@@ -6,6 +6,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import {
   AdminAuctionDetailPage,
+  AdminCashPage,
   AdminOverviewPage,
   AdminPreviousPage,
   AdminUpcomingPage,
@@ -26,6 +27,7 @@ function Router() {
     <RoutedErrorBoundary>
       <Switch>
         <Route path="/" component={AdminOverviewPage} />
+        <Route path="/cash" component={AdminCashPage} />
         <Route path="/previous" component={AdminPreviousPage} />
         <Route path="/upcoming" component={AdminUpcomingPage} />
         <Route path="/auctions/:auctionId" component={AdminAuctionDetailPage} />

@@ -142,3 +142,52 @@ export const GetAdminAuctionBidsResponse = zod.object({
 })
 
 
+/**
+ * @summary Get cash totals and financial transactions
+ */
+export const getAdminCashQueryOffsetDefault = 0;
+export const getAdminCashQueryOffsetMin = 0;
+export const getAdminCashQueryOffsetMax = 100000;
+
+export const getAdminCashQueryLimitDefault = 25;
+export const getAdminCashQueryLimitMax = 100;
+
+
+
+export const GetAdminCashQueryParams = zod.object({
+  "offset": zod.coerce.number().int().min(getAdminCashQueryOffsetMin).max(getAdminCashQueryOffsetMax).default(getAdminCashQueryOffsetDefault),
+  "limit": zod.coerce.number().int().min(1).max(getAdminCashQueryLimitMax).default(getAdminCashQueryLimitDefault)
+})
+
+export const GetAdminCashResponse = zod.object({
+  "summary": zod.object({
+  "inflowCents": zod.number().int(),
+  "refundCents": zod.number().int(),
+  "prizeOutflowCents": zod.number().int(),
+  "outflowCents": zod.number().int(),
+  "netCents": zod.number().int(),
+  "pendingInflowCents": zod.number().int(),
+  "pendingOutflowCents": zod.number().int(),
+  "transactionCount": zod.number().int()
+}),
+  "transactions": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['package_purchase', 'prize_redemption']),
+  "direction": zod.enum(['inflow', 'outflow', 'pending', 'excluded']),
+  "status": zod.enum(['pending', 'paid', 'failed', 'refunded', 'requested', 'processing', 'fulfilled', 'rejected']),
+  "amountCents": zod.number().int(),
+  "description": zod.string(),
+  "customerName": zod.string(),
+  "paymentProvider": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "settledAt": zod.coerce.date().nullable(),
+  "packageId": zod.string().nullable(),
+  "packageBids": zod.number().int().nullable(),
+  "auctionId": zod.number().int().nullable()
+})),
+  "totalCount": zod.number().int(),
+  "nextOffset": zod.number().int().nullable(),
+  "hasMore": zod.boolean()
+})
+
+

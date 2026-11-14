@@ -28,10 +28,12 @@ import type {
   AdminAccessInput,
   AdminAuctionBidsPage,
   AdminAuctionPage,
+  AdminCashResponse,
   AdminOverview,
   AdminSessionResponse,
   GetAdminAuctionBidsParams,
-  GetAdminAuctionsParams
+  GetAdminAuctionsParams,
+  GetAdminCashParams
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -626,6 +628,114 @@ export function useGetAdminAuctionBids<TData = Awaited<ReturnType<typeof getAdmi
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetAdminAuctionBidsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminCashUrl = (params?: GetAdminCashParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/cash?${stringifiedParams}` : `/api/admin/cash`
+}
+
+/**
+ * @summary Get cash totals and financial transactions
+ */
+export const getAdminCash = async (params?: GetAdminCashParams, options?: RequestInit): Promise<AdminCashResponse> => {
+
+  return customFetch<AdminCashResponse>(getGetAdminCashUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminCashQueryKey = (params?: GetAdminCashParams,) => {
+    return [
+    `/api/admin/cash`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminCashQueryOptions = <TData = Awaited<ReturnType<typeof getAdminCash>>, TError = void>(params?: GetAdminCashParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminCash>>, TError, TData>>, }
+) => {
+
+const {query: queryOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminCashQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminCash>>> = ({ signal }) => getAdminCash(params, { signal });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminCash>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAdminCashQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminCash>>>
+export type GetAdminCashQueryError = void
+
+
+export function useGetAdminCash<TData = Awaited<ReturnType<typeof getAdminCash>>, TError = void>(
+ params: undefined |  GetAdminCashParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminCash>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminCash>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminCash>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminCash<TData = Awaited<ReturnType<typeof getAdminCash>>, TError = void>(
+ params?: GetAdminCashParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminCash>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminCash>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminCash>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminCash<TData = Awaited<ReturnType<typeof getAdminCash>>, TError = void>(
+ params?: GetAdminCashParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminCash>>, TError, TData>>, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get cash totals and financial transactions
+ */
+
+export function useGetAdminCash<TData = Awaited<ReturnType<typeof getAdminCash>>, TError = void>(
+ params?: GetAdminCashParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminCash>>, TError, TData>>, }
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAdminCashQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

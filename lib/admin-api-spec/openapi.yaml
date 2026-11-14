@@ -148,6 +148,41 @@ paths:
           description: Admin access required
         "404":
           description: Auction not found
+  /admin/cash:
+    get:
+      operationId: getAdminCash
+      tags: [admin]
+      summary: Get cash totals and financial transactions
+      security:
+        - adminCookieAuth: []
+      parameters:
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 100000
+            default: 0
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        "200":
+          description: Cash totals and a page of financial transactions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCashResponse"
+        "400":
+          description: Invalid cash request
+        "401":
+          description: Admin access required
 components:
   securitySchemes:
     adminCookieAuth:
@@ -221,6 +256,83 @@ components:
         hasMore:
           type: boolean
       required: [auction, bids, nextBefore, hasMore]
+    AdminCashDirection:
+      type: string
+      enum: [inflow, outflow, pending, excluded]
+    AdminCashTransactionKind:
+      type: string
+      enum: [package_purchase, prize_redemption]
+    AdminCashTransactionStatus:
+      type: string
+      enum: [pending, paid, failed, refunded, requested, processing, fulfilled, rejected]
+    AdminCashTransaction:
+      type: object
+      properties:
+        id:
+          type: string
+        kind:
+          $ref: "#/components/schemas/AdminCashTransactionKind"
+        direction:
+          $ref: "#/components/schemas/AdminCashDirection"
+        status:
+          $ref: "#/components/schemas/AdminCashTransactionStatus"
+        amountCents:
+          type: integer
+        description:
+          type: string
+        customerName:
+          type: string
+        paymentProvider:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        settledAt:
+          type: ["string", "null"]
+          format: date-time
+        packageId:
+          type: ["string", "null"]
+        packageBids:
+          type: ["integer", "null"]
+        auctionId:
+          type: ["integer", "null"]
+      required: [id, kind, direction, status, amountCents, description, customerName, paymentProvider, createdAt, settledAt, packageId, packageBids, auctionId]
+    AdminCashSummary:
+      type: object
+      properties:
+        inflowCents:
+          type: integer
+        refundCents:
+          type: integer
+        prizeOutflowCents:
+          type: integer
+        outflowCents:
+          type: integer
+        netCents:
+          type: integer
+        pendingInflowCents:
+          type: integer
+        pendingOutflowCents:
+          type: integer
+        transactionCount:
+          type: integer
+      required: [inflowCents, refundCents, prizeOutflowCents, outflowCents, netCents, pendingInflowCents, pendingOutflowCents, transactionCount]
+    AdminCashResponse:
+      type: object
+      properties:
+        summary:
+          $ref: "#/components/schemas/AdminCashSummary"
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminCashTransaction"
+        totalCount:
+          type: integer
+        nextOffset:
+          type: ["integer", "null"]
+        hasMore:
+          type: boolean
+      required: [summary, transactions, totalCount, nextOffset, hasMore]
     AdminAuctionPage:
       type: object
       properties:
