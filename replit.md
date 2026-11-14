@@ -7,12 +7,13 @@ Protótipo responsivo de leilões de lances com saldo, compras Pix simuladas, co
 - Install the workspace dependencies with `pnpm install --frozen-lockfile`.
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080)
 - `pnpm --filter @workspace/lance-cash run dev` — run the React client (port 20112)
-- For local development, run both services in separate terminals. Replit starts them as managed workflows.
+- `pnpm --filter @workspace/lance-cash-admin run dev` — run the admin panel (port 21419, `/admin/`)
+- For local development, run the three services in separate terminals. Replit starts them as managed workflows.
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes to development
-- Required env: `DATABASE_URL` (Postgres connection string) and `SESSION_SECRET` (account sessions)
+- Required env: `DATABASE_URL` (Postgres connection string), `SESSION_SECRET` (account and admin sessions), and `ADMIN_ACCESS_KEY` (admin panel access)
 
 ## Stack
 
