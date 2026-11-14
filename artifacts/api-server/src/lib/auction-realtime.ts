@@ -24,6 +24,17 @@ export type AuctionRealtimeUpdate = {
 
 let activeWebSocketServer: WebSocketServer | null = null;
 
+export function getActiveAuctionViewerCount(): number {
+  const webSocketServer = activeWebSocketServer;
+  if (!webSocketServer) return 0;
+
+  let activeConnections = 0;
+  for (const client of webSocketServer.clients) {
+    if (client.readyState === WebSocket.OPEN) activeConnections += 1;
+  }
+  return activeConnections;
+}
+
 export function attachAuctionRealtime(server: Server): () => void {
   const webSocketServer = new WebSocketServer({
     noServer: true,

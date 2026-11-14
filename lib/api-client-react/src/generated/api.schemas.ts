@@ -5,6 +5,80 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface AdminAccessInput {
+  /**
+     * @minLength 32
+     * @maxLength 512
+     */
+  accessKey: string;
+}
+
+export interface AdminSessionResponse {
+  authenticated: boolean;
+}
+
+export type AdminAuctionSummaryStatus = typeof AdminAuctionSummaryStatus[keyof typeof AdminAuctionSummaryStatus];
+
+
+export const AdminAuctionSummaryStatus = {
+  live: 'live',
+  ended: 'ended',
+  upcoming: 'upcoming',
+} as const;
+
+export interface AdminAuctionSummary {
+  id: number;
+  prize: number;
+  status: AdminAuctionSummaryStatus;
+  bidCount: number;
+  leader: string;
+  /** @nullable */
+  startedAt: string | null;
+  /** @nullable */
+  endedAt: string | null;
+}
+
+export interface AdminAuctionBid {
+  id: number;
+  number: number;
+  leader: string;
+  isSystem: boolean;
+  createdAt: string;
+}
+
+export interface AdminAuctionBidsPage {
+  auction: AdminAuctionSummary;
+  bids: AdminAuctionBid[];
+  /** @nullable */
+  nextBefore: number | null;
+  hasMore: boolean;
+}
+
+export interface AdminAuctionPage {
+  auctions: AdminAuctionSummary[];
+  /** @nullable */
+  nextCursor: number | null;
+  hasMore: boolean;
+}
+
+export interface AdminOverview {
+  currentAuction: AdminAuctionSummary | null;
+  automatedBidCount: number;
+  watcherCount: number;
+  systemBidsEnabled: boolean;
+  previousAuctions: AdminAuctionSummary[];
+  upcomingAuctions: AdminAuctionSummary[];
+}
+
+export interface AdminSystemBidsSettingsUpdate {
+  enabled: boolean;
+}
+
+export interface AdminSystemBidsSettingsResponse {
+  enabled: boolean;
+  updatedAt: string;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -226,5 +300,46 @@ auctionId: number;
  * @minimum 1
  */
 before: number;
+};
+
+export type GetAdminAuctionsParams = {
+status: GetAdminAuctionsStatus;
+/**
+ * @minimum 1
+ */
+cursor?: number;
+/**
+ * @minimum 1
+ * @maximum 50
+ */
+limit?: number;
+};
+
+export type GetAdminAuctionsStatus = typeof GetAdminAuctionsStatus[keyof typeof GetAdminAuctionsStatus];
+
+
+export const GetAdminAuctionsStatus = {
+  ended: 'ended',
+  upcoming: 'upcoming',
+} as const;
+
+export type GetAdminAuctionBidsParams = {
+/**
+ * @minimum 1
+ */
+auctionId: number;
+/**
+ * @maxLength 100
+ */
+search?: string;
+/**
+ * @minimum 1
+ */
+before?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
 };
 

@@ -37,6 +37,7 @@ import type {
 import { useAuctionRealtime, type AuctionRealtimeUpdate } from '@/hooks/use-auction-realtime';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { BidRow, LogoMark, TrophyMark } from '@/design-system';
+import { AdminAuctionDetailPage, AdminOverviewPage, AdminPreviousPage, AdminUpcomingPage } from '@/admin/admin';
 import './lance-cash.css';
 
 type CountdownConnectionState = 'healthy' | 'delayed' | 'disconnected' | 'sync-error';
@@ -1601,6 +1602,10 @@ function Router() {
     <ErrorBoundary resetKey={useLocation()[0]}>
       <Switch>
         <Route path="/" component={Home} />
+        <Route path="/admin" component={AdminOverviewPage} />
+        <Route path="/admin/previous" component={AdminPreviousPage} />
+        <Route path="/admin/upcoming" component={AdminUpcomingPage} />
+        <Route path="/admin/auctions/:auctionId" component={AdminAuctionDetailPage} />
         <Route component={NotFound} />
       </Switch>
     </ErrorBoundary>

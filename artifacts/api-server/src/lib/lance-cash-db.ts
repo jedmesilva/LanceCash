@@ -11,6 +11,7 @@ import {
   sql,
 } from "drizzle-orm";
 import {
+  adminSettingsTable,
   auctionBidsTable,
   auctionPrizesTable,
   auctionsTable,
@@ -282,6 +283,20 @@ async function advanceCurrentAuction(
     });
   }
 
+  const [settings] = await tx
+    .select({ systemBidsEnabled: adminSettingsTable.systemBidsEnabled })
+    .from(adminSettingsTable)
+    .where(eq(adminSettingsTable.id, 1))
+    .limit(1);
+  if (settings?.systemBidsEnabled === false) {
+    if (auction.nextBotAt) {
+      await tx
+        .update(auctionsTable)
+        .set({ nextBotAt: null })
+        .where(eq(auctionsTable.id, auction.id));
+    }
+    return null;
+  }
   if (!auction.nextBotAt || now < auction.nextBotAt) return null;
 
   const bidNumber = auction.bidCount + 1;
@@ -402,7 +417,7 @@ async function openNextAuction(
   });
 }
 
-async function lockAuctionLifecycle(tx: Transaction): Promise<void> {
+export async function lockAuctionLifecycle(tx: Transaction): Promise<void> {
   await tx.execute(sql`SELECT pg_advisory_xact_lock(${auctionLifecycleLockId})`);
 }
 
@@ -742,6 +757,11 @@ export async function placeBid(userId: string, auctionId: number) {
     const bidNumber = current.bidCount + 1;
     const now = new Date();
     const deadlineAt = new Date(now.getTime() + auctionDurationMs);
+    const [systemBidSettings] = await tx
+      .select({ enabled: adminSettingsTable.systemBidsEnabled })
+      .from(adminSettingsTable)
+      .where(eq(adminSettingsTable.id, 1))
+      .limit(1);
     const [bid] = await tx
       .insert(auctionBidsTable)
       .values({
@@ -771,7 +791,10 @@ export async function placeBid(userId: string, auctionId: number) {
         currentLeaderName: "Você",
         currentLeaderUserId: userId,
         deadlineAt,
-        nextBotAt: new Date(now.getTime() + 2_500 + Math.random() * 18_500),
+        nextBotAt:
+          systemBidSettings?.enabled === false
+            ? null
+            : new Date(now.getTime() + 2_500 + Math.random() * 18_500),
       })
       .where(eq(auctionsTable.id, current.id));
 

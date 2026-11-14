@@ -9,3 +9,4 @@ export * from "./user-bid-transactions";
 export * from "./package-purchases";
 export * from "./auction-prizes";
 export * from "./prize-redemptions";
+export * from "./admin-settings";
