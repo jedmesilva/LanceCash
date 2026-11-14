@@ -16,6 +16,14 @@ import { z } from "zod/v4";
 import { auctionsTable } from "./auctions";
 import { usersTable } from "./users";
 
+export const auctionBidSources = [
+  "user_manual",
+  "user_automation",
+  "system_automation",
+  "system_admin",
+] as const;
+export type AuctionBidSource = (typeof auctionBidSources)[number];
+
 export const auctionBidsTable = pgTable(
   "auction_bids",
   {
@@ -29,6 +37,7 @@ export const auctionBidsTable = pgTable(
     }),
     bidderName: text("bidder_name").notNull(),
     isAutomated: boolean("is_automated").notNull().default(false),
+    source: text("source").$type<AuctionBidSource>().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -36,8 +45,17 @@ export const auctionBidsTable = pgTable(
   (table) => [
     check("auction_bids_number_positive", sql`${table.bidNumber} > 0`),
     check(
-      "auction_bids_identity_consistent",
-      sql`(${table.isAutomated} = true AND ${table.userId} IS NULL) OR (${table.isAutomated} = false AND ${table.userId} IS NOT NULL)`,
+      "auction_bids_source_valid",
+      sql`${table.source} IN ('user_manual', 'user_automation', 'system_automation', 'system_admin')`,
+    ),
+    check(
+      "auction_bids_source_identity_consistent",
+      sql`(
+        (${table.source} = 'user_manual' AND ${table.isAutomated} = false AND ${table.userId} IS NOT NULL)
+        OR (${table.source} = 'user_automation' AND ${table.isAutomated} = true AND ${table.userId} IS NOT NULL)
+        OR (${table.source} = 'system_automation' AND ${table.isAutomated} = true AND ${table.userId} IS NULL)
+        OR (${table.source} = 'system_admin' AND ${table.isAutomated} = false AND ${table.userId} IS NULL)
+      )`,
     ),
     uniqueIndex("auction_bids_auction_number_unique").on(
       table.auctionId,

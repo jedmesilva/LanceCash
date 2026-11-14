@@ -350,10 +350,10 @@ function LanceCash() {
   const auctions = mergeAuctions(loadedAuctions, state?.auctions ?? []);
   const hasMorePreviousAuctions = auctionPageAvailability.scope === auctionScope
     ? auctionPageAvailability.previous
-    : state?.auctionPagination.hasPrevious ?? false;
+    : state?.auctionPagination?.hasPrevious ?? false;
   const hasMoreNextAuctions = auctionPageAvailability.scope === auctionScope
     ? auctionPageAvailability.next
-    : state?.auctionPagination.hasNext ?? false;
+    : state?.auctionPagination?.hasNext ?? false;
   const currentIndex = Math.max(0, auctions.findIndex((auction) => auction.id === state?.currentAuctionId));
   const currentAuction = auctions[currentIndex];
   useEffect(() => {
@@ -482,8 +482,8 @@ function LanceCash() {
         loadedLastAuctionId > stateLastId;
       const next = {
         scope: auctionScope,
-        previous: keepPrevious ? current.previous : state.auctionPagination.hasPrevious,
-        next: keepNext ? current.next : state.auctionPagination.hasNext,
+        previous: keepPrevious ? current.previous : state.auctionPagination?.hasPrevious ?? false,
+        next: keepNext ? current.next : state.auctionPagination?.hasNext ?? false,
       };
       return current.scope === next.scope &&
         current.previous === next.previous &&
@@ -552,8 +552,8 @@ function LanceCash() {
     setLoadedAuctionState({ scope: auctionScope, auctions: [] });
     setAuctionPageAvailability({
       scope: auctionScope,
-      previous: state?.auctionPagination.hasPrevious ?? false,
-      next: state?.auctionPagination.hasNext ?? false,
+      previous: state?.auctionPagination?.hasPrevious ?? false,
+      next: state?.auctionPagination?.hasNext ?? false,
     });
     setLoadingAuctionPages({ scope: auctionScope, previous: false, next: false });
     auctionPageLoadingRef.current.clear();
@@ -779,12 +779,12 @@ function LanceCash() {
           ? page.hasMore
           : current.scope === auctionScope
             ? current.previous
-            : state.auctionPagination.hasPrevious,
+            : state.auctionPagination?.hasPrevious ?? false,
         next: direction === 'next'
           ? page.hasMore
           : current.scope === auctionScope
             ? current.next
-            : state.auctionPagination.hasNext,
+            : state.auctionPagination?.hasNext ?? false,
       }));
       failedAuctionPageRequestsRef.current.delete(requestKey);
     } catch {
@@ -1280,7 +1280,7 @@ function LanceCash() {
           const isCurrentLiveAuction = auction.id === state.currentAuctionId && auction.status === 'live';
           const connectionNotice = isCurrentLiveAuction
             ? serverConnectionLost ? 'Sem conexão — cronômetro pausado'
-              : stateSyncFailed ? 'Falha na sincronização — tempo real ativo'
+              : stateSyncFailed ? 'Falha na sincronização — lances pausados'
                 : !realtimeConnected ? 'Atualização atrasada — sincronizando'
                   : null
             : null;
@@ -1308,7 +1308,7 @@ function LanceCash() {
                 <h1 className="lc-prize" aria-label={`Prêmio de ${BRL2.format(auction.prize)} em dinheiro`}>
                   <small>R$</small>{prizeFormatted.slice(0, -3)}<small className="decimal">{prizeFormatted.slice(-3)}</small>
                 </h1>
-                <section className={`lc-current${ended ? ' is-ended' : ''}${isOpenForFirstBid ? ' is-open' : ''}${mine && !upcoming ? ' is-mine' : ''}${isIncomingBidVisible ? ' is-new-bid' : ''}`} aria-label={isOpenForFirstBid ? 'Leilão aberto' : 'Lance atual'} data-testid={`status-auction-${auction.id}`}>
+                <section className={`lc-current${ended ? ' is-ended' : ''}${isOpenForFirstBid ? ' is-open' : ''}${mine && !upcoming ? ' is-mine' : ''}${isCurrentLiveAuction && isStateUnverified ? ' is-stale' : ''}${isIncomingBidVisible ? ' is-new-bid' : ''}`} aria-label={isOpenForFirstBid ? 'Leilão aberto' : 'Lance atual'} aria-busy={isCurrentLiveAuction && isStateUnverified} data-testid={`status-auction-${auction.id}`}>
                   <AuctionCountdown
                     auctionId={auction.id}
                     status={auction.status}
@@ -1358,6 +1358,17 @@ function LanceCash() {
                           : mine ? 'Ao zerar, você leva o prêmio' : 'Ao zerar, quem deu o último lance leva o prêmio')}
                     </div>
                   </div>
+                  {isCurrentLiveAuction && isStateUnverified && (
+                    <div className="lc-sync-overlay" role="status" aria-live="polite">
+                      <Loader2 className="lc-sync-spinner" size={19} strokeWidth={2.5} aria-hidden="true" />
+                      <span className="lc-sync-overlay-copy">
+                        <b>{serverConnectionLost ? 'Reconectando ao servidor…' : 'Sincronizando leilão…'}</b>
+                        <small>{serverConnectionLost
+                          ? 'Cronômetro e lances pausados até a conexão voltar.'
+                          : 'Lances pausados enquanto confirmamos os dados.'}</small>
+                      </span>
+                    </div>
+                  )}
                 </section>
                 <h2 className="lc-section-title">Todos os lances <span>{upcoming ? '' : NUMBER.format(auction.bidCount)}</span></h2>
                 <ol
@@ -1403,13 +1414,17 @@ function LanceCash() {
       <footer className="lc-footer">
         <p>
           {isVisibleCurrent
-            ? isAwaitingVerification ? 'Aguardando confirmação do resultado pelo servidor…'
+            ? isStateUnverified && currentAuction.status === 'live'
+              ? serverConnectionLost ? 'Reconectando ao servidor; lances temporariamente pausados…' : 'Sincronizando estado; lances temporariamente pausados…'
+              : isAwaitingVerification ? 'Aguardando confirmação do resultado pelo servidor…'
               : currentIsEnded ? 'Este leilão terminou' : currentAuction.usedBids ? `Você deu ${NUMBER.format(currentAuction.usedBids)} ${currentAuction.usedBids > 1 ? 'lances' : 'lance'} neste leilão` : 'Cada lance reinicia o tempo em 15 s'
             : visibleIndex === currentIndex + 1 && currentIsEnded ? 'Este leilão ainda não começou'
               : visibleIndex < currentIndex ? 'Este leilão terminou' : 'Este leilão ainda não começou'}
         </p>
-        <button className="lc-cta" type="button" onClick={() => void placeBid()} disabled={buttonDisabled} aria-busy={bidMutation.isPending} data-testid="button-place-bid">
-          Dar lance
+        <button className="lc-cta" type="button" onClick={() => void placeBid()} disabled={buttonDisabled} aria-busy={bidMutation.isPending || isVisibleCurrent && isStateUnverified} data-testid="button-place-bid">
+          {isVisibleCurrent && isStateUnverified
+            ? <><Loader2 className="lc-sync-spinner" size={16} aria-hidden="true" />{serverConnectionLost ? 'Reconectando…' : 'Sincronizando…'}</>
+            : 'Dar lance'}
         </button>
         {showSecondaryAction ? (
           <button

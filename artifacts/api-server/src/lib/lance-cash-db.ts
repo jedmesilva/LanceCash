@@ -116,6 +116,7 @@ async function seedAuction(
       bidNumber: index + 1,
       bidderName,
       isAutomated: true,
+      source: "system_automation",
       createdAt: new Date(
         createdAt + ((index + 1) / input.bidCount) * 60_000,
       ),
@@ -311,6 +312,7 @@ async function advanceCurrentAuction(
     bidNumber,
     bidderName,
     isAutomated: true,
+    source: "system_automation",
     createdAt: now,
   });
   const deadlineAt = new Date(now.getTime() + auctionDurationMs);
@@ -770,6 +772,7 @@ export async function placeBid(userId: string, auctionId: number) {
         userId,
         bidderName: "Você",
         isAutomated: false,
+        source: "user_manual",
         createdAt: now,
       })
       .returning({ id: auctionBidsTable.id });

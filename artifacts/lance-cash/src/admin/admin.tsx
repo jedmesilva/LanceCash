@@ -142,7 +142,24 @@ function SystemSettings({ enabled, onClose }: { enabled: boolean; onClose: () =>
   });
   return <DialogContent className="adm-dialog">
     <DialogHeader><p className="adm-eyebrow">AUTOMATION / SETTINGS</p><DialogTitle>System bids</DialogTitle><DialogDescription>Control automated bidding for the live auction.</DialogDescription></DialogHeader>
-    <div className="adm-switch-row"><div><strong>Automated bidding</strong><p>{nextValue ? 'System bids are enabled.' : 'System bids are paused.'}</p></div><Switch className="adm-automation-switch" checked={nextValue} onCheckedChange={setNextValue} aria-label="Enable automated system bids" data-testid="switch-system-bids" /></div>
+    <div className="adm-switch-row">
+      <div>
+        <strong>Automated bidding</strong>
+        <p>{nextValue ? 'System bids are enabled.' : 'System bids are paused.'}</p>
+      </div>
+      <div className="adm-switch-control">
+        <span className={`adm-switch-state ${nextValue ? 'is-on' : 'is-off'}`} aria-hidden="true">
+          {nextValue ? 'ON' : 'OFF'}
+        </span>
+        <Switch
+          className="adm-automation-switch"
+          checked={nextValue}
+          onCheckedChange={setNextValue}
+          aria-label={nextValue ? 'Disable automated system bids' : 'Enable automated system bids'}
+          data-testid="switch-system-bids"
+        />
+      </div>
+    </div>
     {settings.isError && <div className="adm-form-error" role="alert">Could not save this setting. Try again.</div>}
     <DialogFooter><Button variant="outline" onClick={onClose} data-testid="button-cancel-settings">Cancel</Button><Button className="adm-primary-button" onClick={save} disabled={settings.isPending || nextValue === enabled} data-testid="button-save-system-bids">{settings.isPending ? 'Saving…' : 'Save setting'}</Button></DialogFooter>
   </DialogContent>;

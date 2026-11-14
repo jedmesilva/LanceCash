@@ -38,11 +38,22 @@ export interface AdminAuctionSummary {
   endedAt: string | null;
 }
 
+export type AdminAuctionBidSource = typeof AdminAuctionBidSource[keyof typeof AdminAuctionBidSource];
+
+
+export const AdminAuctionBidSource = {
+  user_manual: 'user_manual',
+  user_automation: 'user_automation',
+  system_automation: 'system_automation',
+  system_admin: 'system_admin',
+} as const;
+
 export interface AdminAuctionBid {
   id: number;
   number: number;
   leader: string;
   isSystem: boolean;
+  source: AdminAuctionBidSource;
   createdAt: string;
 }
 
