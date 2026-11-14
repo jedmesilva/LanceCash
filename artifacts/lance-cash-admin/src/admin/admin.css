@@ -126,6 +126,7 @@
 .adm-bid-table td { height: 53px; padding: 8px 10px; border-bottom: 1px solid #eff0e9; font-size: 12px; }
 .adm-bid-number { color: #586e32; font: 700 11px 'DM Mono', monospace; }
 .adm-bidder { font-weight: 650; }
+.adm-bid-source { display: inline-block; padding: 5px 8px; border-radius: 6px; background: #f0f3e8; color: #526535; font: 9px 'DM Mono', monospace; white-space: nowrap; }
 .adm-bid-date { color: #83887d; font: 10px 'DM Mono', monospace; white-space: nowrap; }
 .adm-load-older { min-height: 66px; display: flex; align-items: center; justify-content: center; position: relative; }
 .adm-load-older > span { position: absolute; right: 0; color: #999d93; font: 9px 'DM Mono', monospace; }
@@ -174,7 +175,7 @@
   .adm-heading-id { font-size: 11px; }
   .adm-history-panel { padding: 14px 12px 0; }
   .adm-history-summary { gap: 10px 15px; flex-wrap: wrap; font-size: 10px; }
-  .adm-bid-table { min-width: 420px; }
+  .adm-bid-table { min-width: 560px; }
   .adm-load-older { flex-direction: column; gap: 7px; padding: 10px 0; }
   .adm-load-older > span { position: static; }
   .adm-footer { font-size: 8px; }

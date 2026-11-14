@@ -138,6 +138,7 @@ export async function readAdminAuctionBids(input: {
       id: bid.id,
       number: bid.bidNumber,
       leader: bid.bidderName,
+      source: bid.source,
       createdAt: bid.createdAt.toISOString(),
     })),
     nextBefore: hasMore ? (bids.at(-1)?.bidNumber ?? null) : null,

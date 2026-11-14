@@ -200,10 +200,13 @@ components:
           type: integer
         leader:
           type: string
+        source:
+          type: string
+          enum: [user_manual, user_automation, system_automation, system_admin]
         createdAt:
           type: string
           format: date-time
-      required: [id, number, leader, createdAt]
+      required: [id, number, leader, source, createdAt]
     AdminAuctionBidsPage:
       type: object
       properties:
