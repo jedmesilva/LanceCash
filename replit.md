@@ -13,6 +13,7 @@ Protótipo responsivo de leilões de lances com saldo, compras Pix simuladas, co
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes to development
+- `pnpm --filter @workspace/db run migrate:package-purchase-source` — add the Pix source field to existing package purchase records
 - Required env: `DATABASE_URL` (Postgres connection string), `SESSION_SECRET` (account and admin sessions), and `ADMIN_ACCESS_KEY` (admin panel access)
 
 ## Stack

@@ -18,6 +18,7 @@ export * from './adminCashResponse';
 export * from './adminCashSummary';
 export * from './adminCashTransaction';
 export * from './adminCashTransactionKind';
+export * from './adminCashTransactionSource';
 export * from './adminCashTransactionStatus';
 export * from './adminOverview';
 export * from './adminSessionResponse';

@@ -262,6 +262,9 @@ components:
     AdminCashTransactionKind:
       type: string
       enum: [package_purchase, prize_redemption]
+    AdminCashTransactionSource:
+      type: string
+      enum: [efi_bank_pix, simulated_pix]
     AdminCashTransactionStatus:
       type: string
       enum: [pending, paid, failed, refunded, requested, processing, fulfilled, rejected]
@@ -282,6 +285,10 @@ components:
           type: string
         customerName:
           type: string
+        source:
+          anyOf:
+            - $ref: "#/components/schemas/AdminCashTransactionSource"
+            - type: "null"
         paymentProvider:
           type: ["string", "null"]
         createdAt:
@@ -296,7 +303,7 @@ components:
           type: ["integer", "null"]
         auctionId:
           type: ["integer", "null"]
-      required: [id, kind, direction, status, amountCents, description, customerName, paymentProvider, createdAt, settledAt, packageId, packageBids, auctionId]
+      required: [id, kind, direction, status, amountCents, description, customerName, source, paymentProvider, createdAt, settledAt, packageId, packageBids, auctionId]
     AdminCashSummary:
       type: object
       properties:

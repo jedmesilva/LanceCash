@@ -168,6 +168,7 @@ type CashTransactionRow = {
   amountCents: number;
   description: string;
   customerName: string;
+  source: "efi_bank_pix" | "simulated_pix" | null;
   paymentProvider: string | null;
   createdAt: Date;
   settledAt: Date | null;
@@ -246,6 +247,7 @@ export async function readAdminCash(input: { offset: number; limit: number }) {
             purchase.amount_cents AS "amountCents",
             'Compra do pacote ' || COALESCE(NULLIF(package.label, ''), purchase.package_id) AS description,
             customer.name AS "customerName",
+            purchase.source AS source,
             purchase.payment_provider AS "paymentProvider",
             purchase.created_at AS "createdAt",
             purchase.paid_at AS "settledAt",
@@ -273,6 +275,7 @@ export async function readAdminCash(input: { offset: number; limit: number }) {
             prize.prize_amount_cents AS "amountCents",
             'Resgate do prêmio do leilão #' || prize.auction_id AS description,
             customer.name AS "customerName",
+            NULL::text AS source,
             NULL::text AS "paymentProvider",
             redemption.requested_at AS "createdAt",
             redemption.processed_at AS "settledAt",

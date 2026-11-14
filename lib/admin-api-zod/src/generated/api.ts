@@ -178,6 +178,7 @@ export const GetAdminCashResponse = zod.object({
   "amountCents": zod.number().int(),
   "description": zod.string(),
   "customerName": zod.string(),
+  "source": zod.union([zod.enum(['efi_bank_pix', 'simulated_pix']),zod.null()]),
   "paymentProvider": zod.string().nullable(),
   "createdAt": zod.coerce.date(),
   "settledAt": zod.coerce.date().nullable(),

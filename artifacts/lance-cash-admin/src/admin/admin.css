@@ -135,6 +135,67 @@
 .adm-current-empty div { text-align: left; }
 .adm-current-empty strong { font: 700 16px 'Space Grotesk', sans-serif; color: #4e5546; }
 .adm-current-empty p { margin-top: 5px; }
+.adm-cash-heading { align-items: center; }
+.adm-cash-ledger-tag { display: inline-flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid #dce2ce; border-radius: 7px; background: #fbfcf7; color: #64734b; font: 700 10px 'DM Mono', monospace; letter-spacing: .07em; white-space: nowrap; }
+.adm-cash-simulation { display: flex; align-items: flex-start; gap: 12px; padding: 15px 17px; margin-bottom: 18px; border: 1px solid #e4e8d9; border-radius: 10px; background: #fafbf5; }
+.adm-cash-simulation-icon { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border-radius: 8px; background: #edf3df; color: #637b36; }
+.adm-cash-simulation strong { display: block; color: #3b4430; font-size: 12px; }
+.adm-cash-simulation p { margin: 4px 0 0; color: #73796b; font-size: 11px; line-height: 1.5; }
+.adm-cash-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+.adm-cash-metric { display: flex; flex-direction: column; min-width: 0; padding: 16px 17px; border: 1px solid var(--adm-line); border-radius: 10px; background: var(--adm-surface); }
+.adm-cash-metric > span { color: #787e70; font-size: 11px; font-weight: 600; }
+.adm-cash-metric strong { margin-top: 9px; overflow: hidden; color: #30372a; font: 700 clamp(18px, 2vw, 23px)/1.1 'Space Grotesk', sans-serif; letter-spacing: -.045em; text-overflow: ellipsis; white-space: nowrap; }
+.adm-cash-metric small { margin-top: 5px; color: #898e83; font: 10px 'DM Mono', monospace; }
+.adm-cash-metric.is-inflow strong { color: #4c7628; }
+.adm-cash-metric.is-outflow strong { color: #98624e; }
+.adm-cash-metric.is-net { background: #f0f5e5; border-color: #dce6c5; }
+.adm-cash-metric.is-net strong { color: #334a20; }
+.adm-cash-pending { display: flex; align-items: center; gap: 25px; padding: 13px 16px; margin-bottom: 18px; border: 1px solid #e5e6dc; border-radius: 9px; background: rgba(255,254,249,.68); }
+.adm-cash-pending > div { display: flex; align-items: center; gap: 9px; margin-right: auto; }
+.adm-cash-pending-dot { width: 8px; height: 8px; border-radius: 50%; background: #d2a64f; box-shadow: 0 0 0 3px #f7efd9; }
+.adm-cash-pending > div span:last-child, .adm-cash-pending > span { display: flex; flex-direction: column; gap: 3px; }
+.adm-cash-pending b { color: #474b3e; font-size: 11px; }
+.adm-cash-pending small { color: #858a7e; font: 9px 'DM Mono', monospace; }
+.adm-cash-pending strong { color: #525848; font: 600 11px 'DM Mono', monospace; }
+.adm-cash-count { padding-left: 23px; border-left: 1px solid #e4e6dc; }
+.adm-cash-ledger { overflow: hidden; border: 1px solid var(--adm-line); border-radius: 12px; background: var(--adm-surface); }
+.adm-cash-ledger-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 15px; }
+.adm-cash-ledger-head h2 { margin: 5px 0 0; font: 700 18px 'Space Grotesk', sans-serif; letter-spacing: -.035em; }
+.adm-cash-ledger-head > span { color: #858a7f; font: 10px 'DM Mono', monospace; }
+.adm-cash-columns, .adm-cash-row { display: grid; grid-template-columns: minmax(230px, 1.6fr) minmax(115px, .8fr) minmax(135px, .9fr) minmax(118px, .75fr) minmax(105px, .6fr); align-items: center; gap: 14px; }
+.adm-cash-columns { padding: 10px 19px; border-top: 1px solid #eceee6; border-bottom: 1px solid #e9ebe2; background: #f7f8f2; color: #858a7e; font: 9px 'DM Mono', monospace; letter-spacing: .08em; text-transform: uppercase; }
+.adm-cash-row { min-height: 77px; padding: 11px 19px; border-bottom: 1px solid #eff0e9; }
+.adm-cash-row:last-child { border-bottom: 0; }
+.adm-cash-transaction-main { display: flex; align-items: center; min-width: 0; gap: 11px; }
+.adm-cash-kind-icon { display: grid; width: 33px; height: 33px; flex: 0 0 auto; place-items: center; border-radius: 9px; background: #eef4e2; color: #5d7d2f; }
+.adm-cash-kind-icon.is-prize_redemption { background: #f7eee9; color: #98644d; }
+.adm-cash-description { display: flex; flex-direction: column; min-width: 0; gap: 3px; }
+.adm-cash-description strong { overflow: hidden; color: #343a2e; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.adm-cash-description > span, .adm-cash-description small { overflow: hidden; color: #858a7f; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.adm-cash-description i { margin: 0 4px; color: #c2c5bb; font-style: normal; }
+.adm-cash-channel, .adm-cash-timing, .adm-cash-amount { display: flex; flex-direction: column; min-width: 0; gap: 4px; }
+.adm-cash-channel > span { width: fit-content; max-width: 100%; overflow: hidden; padding: 5px 7px; border-radius: 5px; background: #f0f4e8; color: #526a32; font: 700 9px 'DM Mono', monospace; text-overflow: ellipsis; white-space: nowrap; }
+.adm-cash-channel > small, .adm-cash-timing > small, .adm-cash-amount > small { overflow: hidden; color: #898e83; font: 9px 'DM Mono', monospace; text-overflow: ellipsis; white-space: nowrap; }
+.adm-cash-timing > span { color: #5e6457; font: 10px 'DM Mono', monospace; }
+.adm-cash-amount { align-items: flex-start; }
+.adm-cash-amount strong { font: 700 12px 'DM Mono', monospace; white-space: nowrap; }
+.adm-cash-amount strong.is-inflow { color: #4c7628; }
+.adm-cash-amount strong.is-outflow { color: #98624e; }
+.adm-cash-amount strong.is-pending { color: #9a7736; }
+.adm-cash-amount strong.is-excluded { color: #858a7f; }
+.adm-cash-status { display: inline-flex; width: fit-content; max-width: 100%; overflow: hidden; padding: 5px 7px; border-radius: 5px; background: #eef0e9; color: #6d7268; font: 600 9px 'DM Mono', monospace; text-overflow: ellipsis; white-space: nowrap; }
+.adm-cash-status.is-paid, .adm-cash-status.is-fulfilled { background: #edf5df; color: #52742b; }
+.adm-cash-status.is-pending, .adm-cash-status.is-requested, .adm-cash-status.is-processing { background: #fbf2dc; color: #8b6a2f; }
+.adm-cash-status.is-failed, .adm-cash-status.is-refunded, .adm-cash-status.is-rejected { background: #f8ebe6; color: #965b48; }
+.adm-cash-empty { padding: 24px; }
+.adm-cash-empty strong { color: #555b4d; font-size: 13px; }
+.adm-cash-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 18px; border-top: 1px solid #e9ebe3; color: #858a7f; font: 10px 'DM Mono', monospace; }
+.adm-cash-pagination > span { white-space: nowrap; }
+.adm-cash-pagination i { padding: 0 4px; color: #b7baaf; font-style: normal; }
+.adm-cash-pagination > div { display: flex; gap: 7px; }
+.adm-cash-metrics-skeleton { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 18px 0 12px; }
+.adm-cash-metrics-skeleton i { height: 91px; border-radius: 10px; background: linear-gradient(90deg, #e9ece2 20%, #f2f4ec 45%, #e9ece2 70%); background-size: 220% 100%; animation: adm-shimmer 1.4s ease infinite; }
+.adm-cash-loading .adm-skeletons i { height: 70px; }
 @media (max-width: 760px) {
   .adm-root { padding: 0 17px; }
   .adm-topbar { height: auto; min-height: 66px; gap: 12px; flex-wrap: wrap; padding: 12px 0 0; }
@@ -179,8 +240,32 @@
   .adm-load-older { flex-direction: column; gap: 7px; padding: 10px 0; }
   .adm-load-older > span { position: static; }
   .adm-footer { font-size: 8px; }
+  .adm-cash-heading { align-items: flex-start; }
+  .adm-cash-ledger-tag { font-size: 0; gap: 0; padding: 9px; }
+  .adm-cash-ledger-tag svg { width: 16px; height: 16px; }
+  .adm-cash-summary, .adm-cash-metrics-skeleton { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+  .adm-cash-metric { padding: 13px 12px; }
+  .adm-cash-metric > span { font-size: 10px; }
+  .adm-cash-metric strong { font-size: 18px; }
+  .adm-cash-metric small { font-size: 9px; }
+  .adm-cash-pending { flex-wrap: wrap; gap: 12px 18px; padding: 13px; }
+  .adm-cash-pending > div { width: 100%; margin: 0; }
+  .adm-cash-count { padding-left: 0; border-left: 0; }
+  .adm-cash-ledger-head { align-items: flex-start; gap: 8px; padding: 16px 13px 13px; }
+  .adm-cash-ledger-head h2 { font-size: 16px; }
+  .adm-cash-ledger-head > span { padding-top: 4px; font-size: 9px; white-space: nowrap; }
+  .adm-cash-columns { display: none; }
+  .adm-cash-row { grid-template-columns: minmax(0, 1fr) auto; gap: 9px 12px; padding: 13px; }
+  .adm-cash-transaction-main { grid-column: 1; }
+  .adm-cash-channel { grid-column: 1; grid-row: 2; margin-left: 44px; }
+  .adm-cash-timing { grid-column: 1; grid-row: 3; margin-left: 44px; }
+  .adm-cash-amount { grid-column: 2; grid-row: 1 / span 2; align-items: flex-end; text-align: right; }
+  .adm-cash-status { grid-column: 2; grid-row: 3; justify-self: end; }
+  .adm-cash-pagination { align-items: flex-start; flex-direction: column; padding: 12px 13px; }
+  .adm-cash-pagination > div { width: 100%; justify-content: space-between; }
+  .adm-cash-empty { padding: 20px 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .adm-skeletons i, .adm-spin { animation: none; }
+  .adm-skeletons i, .adm-cash-metrics-skeleton i, .adm-spin { animation: none; }
   .adm-live-card, .adm-login-card { animation: none; }
 }

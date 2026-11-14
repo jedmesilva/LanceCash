@@ -15,6 +15,12 @@ import { bidPackagesTable } from "./bid-packages";
 import { packagePurchaseStatusEnum } from "./enums";
 import { usersTable } from "./users";
 
+export const packagePurchaseSources = [
+  "efi_bank_pix",
+  "simulated_pix",
+] as const;
+export type PackagePurchaseSource = (typeof packagePurchaseSources)[number];
+
 export const packagePurchasesTable = pgTable(
   "package_purchases",
   {
@@ -29,6 +35,10 @@ export const packagePurchasesTable = pgTable(
     bonusBids: integer("bonus_bids").notNull(),
     amountCents: integer("amount_cents").notNull(),
     paymentProvider: text("payment_provider").notNull(),
+    source: text("source")
+      .$type<PackagePurchaseSource>()
+      .notNull()
+      .default("simulated_pix"),
     status: packagePurchaseStatusEnum("status").notNull().default("pending"),
     idempotencyKey: text("idempotency_key").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -45,6 +55,10 @@ export const packagePurchasesTable = pgTable(
     check(
       "package_purchases_amount_nonnegative",
       sql`${table.amountCents} >= 0`,
+    ),
+    check(
+      "package_purchases_source_valid",
+      sql`${table.source} IN ('efi_bank_pix', 'simulated_pix')`,
     ),
     uniqueIndex("package_purchases_idempotency_unique").on(
       table.idempotencyKey,

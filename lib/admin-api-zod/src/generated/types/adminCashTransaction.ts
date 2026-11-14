@@ -7,6 +7,7 @@
  */
 import type { AdminCashDirection } from './adminCashDirection';
 import type { AdminCashTransactionKind } from './adminCashTransactionKind';
+import type { AdminCashTransactionSource } from './adminCashTransactionSource';
 import type { AdminCashTransactionStatus } from './adminCashTransactionStatus';
 
 export interface AdminCashTransaction {
@@ -17,6 +18,7 @@ export interface AdminCashTransaction {
   amountCents: number;
   description: string;
   customerName: string;
+  source: AdminCashTransactionSource | null;
   /** @nullable */
   paymentProvider: string | null;
   createdAt: Date;

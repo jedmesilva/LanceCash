@@ -179,6 +179,10 @@ const cashKindLabels: Record<AdminCashTransaction['kind'], string> = {
   package_purchase: 'Compra de pacote',
   prize_redemption: 'Resgate de prêmio',
 };
+const cashSourceLabels: Record<Exclude<AdminCashTransaction['source'], null>, string> = {
+  efi_bank_pix: 'Pix Efí Bank',
+  simulated_pix: 'Pix Simulado',
+};
 const cashDirectionLabels: Record<AdminCashTransaction['direction'], string> = {
   inflow: 'Entrada confirmada',
   outflow: 'Saída confirmada',
@@ -215,7 +219,9 @@ function CashTransactionRow({ transaction }: { transaction: AdminCashTransaction
       </div>
     </div>
     <div className="adm-cash-channel">
-      <span>{transaction.paymentProvider || (transaction.kind === 'prize_redemption' ? 'Resgate simulado' : 'Provedor não informado')}</span>
+      <span data-testid={`text-cash-source-${transaction.id}`}>
+        {transaction.source ? cashSourceLabels[transaction.source] : 'Resgate de prêmio'}
+      </span>
       <small>{transaction.auctionId != null ? `Leilão #${transaction.auctionId}` : transaction.packageId ? `Pacote ${transaction.packageId}` : '—'}</small>
     </div>
     <div className="adm-cash-timing">
@@ -254,14 +260,14 @@ export function AdminCashPage() {
       <div>
         <p className="adm-eyebrow">FINANÇAS / REGISTRO OPERACIONAL</p>
         <h1>Caixa</h1>
-        <p>Compras de pacotes e resgates de prêmios, em um só registro.</p>
+        <p>Entradas de pacotes, resgates e origem do Pix em um só registro.</p>
       </div>
       <span className="adm-cash-ledger-tag"><ReceiptText size={15} /> LEDGER / BRL</span>
     </div>
 
     <aside className="adm-cash-simulation" role="note" data-testid="notice-cash-simulated">
       <span className="adm-cash-simulation-icon"><Landmark size={17} /></span>
-      <div><strong>Valores simulados — não representam recebimentos reais.</strong><p>Pix e resgates de prêmios neste projeto são simulações. Os valores abaixo são modelados a partir dos registros; não são comprovantes nem saldo bancário.</p></div>
+      <div><strong>O caixa do app não substitui o extrato bancário.</strong><p>Pix Simulado é apenas demonstração. Pix Efí Bank deve aparecer somente após confirmação do provedor; os valores deste painel seguem os registros do app.</p></div>
     </aside>
 
     {cash.isLoading ? <section className="adm-cash-loading" aria-label="Carregando resumo e transações" aria-busy="true">

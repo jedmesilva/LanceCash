@@ -868,6 +868,7 @@ export async function purchasePackage(
         bonusBids: pack.bonusBids,
         amountCents: pack.priceCents,
         paymentProvider: "simulated_pix",
+        source: "simulated_pix",
         status: "paid",
         idempotencyKey,
         paidAt: now,

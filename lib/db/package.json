@@ -10,7 +10,8 @@
   "scripts": {
     "push": "drizzle-kit push --config ./drizzle.config.ts",
     "push-force": "drizzle-kit push --force --config ./drizzle.config.ts",
-    "migrate:auction-bid-source": "node ./scripts/apply-auction-bid-source-migration.mjs"
+    "migrate:auction-bid-source": "node ./scripts/apply-auction-bid-source-migration.mjs",
+    "migrate:package-purchase-source": "node ./scripts/apply-package-purchase-source-migration.mjs"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",

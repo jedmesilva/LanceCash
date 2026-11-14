@@ -82,6 +82,14 @@ export const AdminCashTransactionKind = {
   prize_redemption: 'prize_redemption',
 } as const;
 
+export type AdminCashTransactionSource = typeof AdminCashTransactionSource[keyof typeof AdminCashTransactionSource];
+
+
+export const AdminCashTransactionSource = {
+  efi_bank_pix: 'efi_bank_pix',
+  simulated_pix: 'simulated_pix',
+} as const;
+
 export type AdminCashTransactionStatus = typeof AdminCashTransactionStatus[keyof typeof AdminCashTransactionStatus];
 
 
@@ -104,6 +112,7 @@ export interface AdminCashTransaction {
   amountCents: number;
   description: string;
   customerName: string;
+  source: AdminCashTransactionSource | null;
   /** @nullable */
   paymentProvider: string | null;
   createdAt: string;
