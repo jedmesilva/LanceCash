@@ -116,7 +116,7 @@ async function seedAuction(
       bidNumber: index + 1,
       bidderName,
       isAutomated: true,
-      source: "system_automation",
+      source: "system_automation" as const,
       createdAt: new Date(
         createdAt + ((index + 1) / input.bidCount) * 60_000,
       ),
