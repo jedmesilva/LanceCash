@@ -3,3 +3,4 @@
 - [Auction opening state](auction-opening-state.md) — scheduled auctions show “Em breve”; zero-bid live auctions show “Aberto” until the first manual bid.
 - [Error screen copy](error-screen-copy.md) — keep load failures neutral: say the screen failed to load, ask users to retry, and avoid account or balance claims.
 - [Node toolchain selection](node-toolchain-selection.md) — pnpm may keep using Node 20 even after Node 24 is installed; verify the runtime used by scripts.
+- [Consumer/admin separation](consumer-admin-separation.md) — keep all administrative references out of the consumer frontend source and published assets.
