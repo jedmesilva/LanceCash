@@ -1,24 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useLocation, useParams } from 'wouter';
 import {
-  AlertTriangle, ArrowDown, ArrowLeft, ArrowRight, CalendarClock, ChevronRight,
+  AlertTriangle, ArrowLeft, ArrowRight, CalendarClock, ChevronRight,
   CircleDot, Clock3, KeyRound, LogOut, ShieldCheck, Users, LoaderCircle,
 } from 'lucide-react';
 import {
+  getAdminAuctionBids,
   getGetAdminAuctionBidsQueryKey,
   getGetAdminAuctionsQueryKey,
   getGetAdminOverviewQueryKey,
   getGetAdminSessionQueryKey,
   useDeleteAdminSession,
-  useGetAdminAuctionBids,
   useGetAdminAuctions,
   useGetAdminOverview,
   useGetAdminSession,
   usePostAdminSession,
 } from '@workspace/admin-api-client-react';
-import type { AdminAuctionBid, AdminAuctionSummary, GetAdminAuctionsParams } from '@workspace/admin-api-client-react';
+import type { AdminAuctionSummary, GetAdminAuctionsParams } from '@workspace/admin-api-client-react';
 import './admin.css';
 
 type AccessForm = { accessKey: string };
@@ -194,33 +194,47 @@ export function AdminUpcomingPage() { return <AuctionCollection status="upcoming
 export function AdminAuctionDetailPage() {
   const params = useParams<{ auctionId: string }>();
   const auctionId = Number(params.auctionId);
-  const [before, setBefore] = useState<number | undefined>();
-  const [olderCursors, setOlderCursors] = useState<number[]>([]);
-  const [bids, setBids] = useState<AdminAuctionBid[]>([]);
-  const queryParams = useMemo(() => ({ auctionId, ...(before != null ? { before } : {}), limit: 30 }), [auctionId, before]);
-  const history = useGetAdminAuctionBids(queryParams, { query: { queryKey: getGetAdminAuctionBidsQueryKey(queryParams), enabled: Number.isInteger(auctionId) && auctionId > 0 } });
+  const queryParams = useMemo(() => ({ auctionId, limit: 100 }), [auctionId]);
+  const history = useInfiniteQuery({
+    queryKey: getGetAdminAuctionBidsQueryKey(queryParams),
+    initialPageParam: undefined as number | undefined,
+    queryFn: ({ pageParam, signal }) => getAdminAuctionBids(
+      {
+        ...queryParams,
+        ...(pageParam != null ? { before: pageParam } : {}),
+      },
+      { signal },
+    ),
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore ? lastPage.nextBefore ?? undefined : undefined,
+    enabled: Number.isInteger(auctionId) && auctionId > 0,
+  });
   const [, navigate] = useLocation();
-  useEffect(() => { setBids([]); setBefore(undefined); setOlderCursors([]); }, [auctionId]);
   useEffect(() => {
-    if (!history.data) return;
-    setBids((current) => before != null
-      ? [...current, ...history.data!.bids.filter((bid) => !current.some((loaded) => loaded.id === bid.id))]
-      : history.data!.bids);
-  }, [before, history.data]);
-  const loadOlder = () => {
-    if (!history.data?.hasMore || history.data.nextBefore == null) return;
-    const next = history.data.nextBefore;
-    setOlderCursors((current) => [...current, next]);
-    setBefore(next);
-  };
+    if (
+      history.hasNextPage &&
+      !history.isFetchingNextPage &&
+      !history.isFetchNextPageError
+    ) {
+      void history.fetchNextPage();
+    }
+  }, [
+    history.fetchNextPage,
+    history.hasNextPage,
+    history.isFetchingNextPage,
+    history.isFetchNextPageError,
+  ]);
+  const auction = history.data?.pages[0]?.auction;
+  const bids = history.data?.pages.flatMap((page) => page.bids) ?? [];
   return <AdminShell><>
     <button className="adm-back" onClick={() => navigate('/')} data-testid="button-back-overview"><ArrowLeft size={15} /> Visão geral</button>
-    <div className="adm-page-heading adm-detail-heading"><div><p className="adm-eyebrow">LEILÃO / HISTÓRICO COMPLETO</p><h1>{history.data ? money.format(history.data.auction.prize) : `Leilão #${auctionId}`} <span className="adm-heading-id">#{auctionId}</span></h1><p>Todos os lances, do mais recente ao mais antigo.</p></div>{history.data && <StatusPill status={history.data.auction.status} />}</div>
+    <div className="adm-page-heading adm-detail-heading"><div><p className="adm-eyebrow">LEILÃO / HISTÓRICO COMPLETO</p><h1>{auction ? money.format(auction.prize) : `Leilão #${auctionId}`} <span className="adm-heading-id">#{auctionId}</span></h1><p>Todos os lances, do mais recente ao mais antigo.</p></div>{auction && <StatusPill status={auction.status} />}</div>
     {!Number.isInteger(auctionId) || auctionId < 1 ? <ErrorNotice retry={() => navigate('/')} message="Este identificador de leilão é inválido." /> : <section className="adm-history-panel">
-      {history.data && <div className="adm-history-summary"><span><b>{fmt.format(history.data.auction.bidCount)}</b> lances no total</span><span>Líder <b>{history.data.auction.leader || '—'}</b></span><span>Início {dateTime(history.data.auction.startedAt)}</span></div>}
-      {history.isLoading ? <Skeleton rows={7} /> : history.isError ? <ErrorNotice retry={() => void history.refetch()} /> : bids.length === 0 ? <div className="adm-empty"><CalendarClock size={20} /><p>Nenhum lance registrado neste leilão.</p></div> : <>
+      {auction && <div className="adm-history-summary"><span><b>{fmt.format(auction.bidCount)}</b> lances no total</span><span>Líder <b>{auction.leader || '—'}</b></span><span>Início {dateTime(auction.startedAt)}</span></div>}
+      {history.isLoading ? <Skeleton rows={7} /> : history.isError && !history.data ? <ErrorNotice retry={() => void history.refetch()} /> : bids.length === 0 ? <div className="adm-empty"><CalendarClock size={20} /><p>Nenhum lance registrado neste leilão.</p></div> : <>
         <div className="adm-bid-table-wrap"><table className="adm-bid-table"><thead><tr><th>Número</th><th>Licitante</th><th>Registrado</th></tr></thead><tbody>{bids.map((bid) => <tr key={bid.id} data-testid={`row-bid-${bid.id}`}><td><span className="adm-bid-number">#{fmt.format(bid.number)}</span></td><td className="adm-bidder">{bid.leader}</td><td className="adm-bid-date">{dateTime(bid.createdAt)}</td></tr>)}</tbody></table></div>
-        {history.data?.hasMore && <div className="adm-load-older"><button className="adm-button adm-button-outline" onClick={loadOlder} disabled={history.isFetching} data-testid="button-load-older-bids"><ArrowDown size={15} />{history.isFetching ? 'Carregando lances anteriores…' : 'Carregar lances anteriores'}</button><span>{olderCursors.length ? `${olderCursors.length} página${olderCursors.length === 1 ? '' : 's'} carregada${olderCursors.length === 1 ? '' : 's'}` : 'Mais recentes primeiro'}</span></div>}
+        {history.hasNextPage && !history.isFetchNextPageError && <div className="adm-load-older" role="status"><LoaderCircle className="adm-spin" size={15} /> Carregando todos os lances: {fmt.format(bids.length)} de {fmt.format(auction?.bidCount ?? bids.length)}</div>}
+        {history.isFetchNextPageError && <ErrorNotice retry={() => void history.fetchNextPage()} message="Não foi possível carregar todos os lances." />}
       </>}
     </section>}
   </></AdminShell>;
