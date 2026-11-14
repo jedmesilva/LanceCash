@@ -256,6 +256,26 @@ async function advanceCurrentAuction(
   if (!auction) return null;
 
   const now = new Date();
+  if (auction.bidCount === 0 && (auction.deadlineAt || auction.nextBotAt)) {
+    await tx
+      .update(auctionsTable)
+      .set({
+        startedAt: null,
+        deadlineAt: null,
+        nextBotAt: null,
+        currentLeaderName: "",
+      })
+      .where(eq(auctionsTable.id, auction.id));
+    return createAuctionRealtimeUpdate(auction, {
+      status: "live",
+      bidCount: 0,
+      leader: "",
+      startedAt: null,
+      deadlineAt: null,
+      serverTime: now.toISOString(),
+    });
+  }
+
   if (auction.deadlineAt && now >= auction.deadlineAt) {
     await tx
       .update(auctionsTable)
@@ -359,6 +379,43 @@ async function ensureUpcomingAuction(
   });
 }
 
+async function openNextAuction(
+  tx: Transaction,
+): Promise<AuctionRealtimeUpdate | null> {
+  const current = await getCurrentAuction(tx);
+  if (!current || current.status !== "ended") return null;
+
+  const [nextAuction] = await tx
+    .select()
+    .from(auctionsTable)
+    .where(eq(auctionsTable.status, "upcoming"))
+    .orderBy(asc(auctionsTable.id))
+    .limit(1)
+    .for("update");
+  if (!nextAuction) return null;
+
+  const now = new Date();
+  await tx
+    .update(auctionsTable)
+    .set({
+      status: "live",
+      startedAt: null,
+      deadlineAt: null,
+      nextBotAt: null,
+    })
+    .where(eq(auctionsTable.id, nextAuction.id));
+
+  return createAuctionRealtimeUpdate(nextAuction, {
+    currentAuctionId: nextAuction.id,
+    status: "live",
+    bidCount: 0,
+    leader: "",
+    startedAt: null,
+    deadlineAt: null,
+    serverTime: now.toISOString(),
+  });
+}
+
 async function lockAuctionLifecycle(tx: Transaction): Promise<void> {
   await tx.execute(sql`SELECT pg_advisory_xact_lock(${auctionLifecycleLockId})`);
 }
@@ -369,11 +426,19 @@ export async function advanceAuctions(): Promise<void> {
     const events: AuctionRealtimeUpdate[] = [];
     const currentUpdate = await advanceCurrentAuction(tx);
     if (currentUpdate) events.push(currentUpdate);
-    const upcomingUpdate = await ensureUpcomingAuction(
+    const scheduledUpdate = await ensureUpcomingAuction(
       tx,
       currentUpdate?.currentAuctionId,
     );
-    if (upcomingUpdate) events.push(upcomingUpdate);
+    if (scheduledUpdate) events.push(scheduledUpdate);
+    const openedUpdate = await openNextAuction(tx);
+    if (openedUpdate) events.push(openedUpdate);
+    const currentAuction = await getCurrentAuction(tx);
+    const nextScheduledUpdate = await ensureUpcomingAuction(
+      tx,
+      currentAuction?.id,
+    );
+    if (nextScheduledUpdate) events.push(nextScheduledUpdate);
     return events;
   });
   for (const update of updates) publishAuctionUpdate(update);
@@ -645,36 +710,16 @@ export async function placeBid(userId: string, auctionId: number) {
     if (lifecycleUpdate) events.push(lifecycleUpdate);
     let current = await getCurrentAuction(tx);
     if (current?.status === "ended") {
-      const [target] = await tx
-        .select()
-        .from(auctionsTable)
-        .where(eq(auctionsTable.id, auctionId))
-        .limit(1)
-        .for("update");
-
-      if (target?.status === "upcoming") {
-        const now = new Date();
-        const deadlineAt = new Date(now.getTime() + auctionDurationMs);
-        await tx
-          .update(auctionsTable)
-          .set({
-            status: "live",
-            startedAt: now,
-            deadlineAt,
-            nextBotAt: new Date(now.getTime() + 3_000),
-          })
-          .where(eq(auctionsTable.id, target.id));
-        events.push(createAuctionRealtimeUpdate(target, {
-          currentAuctionId: target.id,
-          status: "live",
-          startedAt: now.toISOString(),
-          deadlineAt: deadlineAt.toISOString(),
-          serverTime: now.toISOString(),
-        }));
-        const upcomingUpdate = await ensureUpcomingAuction(tx, target.id);
-        if (upcomingUpdate) events.push(upcomingUpdate);
-        return { ok: true as const, events };
+      const openedUpdate = await openNextAuction(tx);
+      if (openedUpdate) {
+        events.push(openedUpdate);
+        const scheduledUpdate = await ensureUpcomingAuction(
+          tx,
+          openedUpdate.currentAuctionId,
+        );
+        if (scheduledUpdate) events.push(scheduledUpdate);
       }
+      current = await getCurrentAuction(tx);
     }
 
     current = await getCurrentAuction(tx);
@@ -732,6 +777,7 @@ export async function placeBid(userId: string, auctionId: number) {
     await tx
       .update(auctionsTable)
       .set({
+        startedAt: current.startedAt ?? now,
         bidCount: bidNumber,
         currentLeaderName: "Você",
         currentLeaderUserId: userId,
@@ -745,6 +791,7 @@ export async function placeBid(userId: string, auctionId: number) {
       status: "live",
       bidCount: bidNumber,
       leader: "Você",
+      startedAt: current.startedAt?.toISOString() ?? now.toISOString(),
       deadlineAt: deadlineAt.toISOString(),
       serverTime: now.toISOString(),
       bid: {
