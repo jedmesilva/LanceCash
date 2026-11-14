@@ -965,37 +965,6 @@ function LanceCash() {
       showToast(error instanceof Error ? error.message : 'Não foi possível dar seu lance.');
     }
   };
-  const startNextAuction = async () => {
-    if (isStateUnverified) return;
-    if (!isAuthenticated) {
-      openAuth();
-      return;
-    }
-    if (!state || !currentAuction || currentAuction.status !== 'ended') return;
-
-    const targetAuction = visibleIndex === currentIndex
-      ? auctions[currentIndex + 1]
-      : visibleIndex === currentIndex + 1
-        ? visibleAuction
-        : undefined;
-    if (!targetAuction || targetAuction.status !== 'upcoming') return;
-
-    try {
-      const next = await bidMutation.mutateAsync({
-        data: { auctionId: targetAuction.id },
-      });
-      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      auctionScrollTargetRef.current = {
-        auctionId: next.currentAuctionId,
-        behavior: reducedMotion ? 'auto' : 'smooth',
-      };
-      initializedAuctionRef.current = next.currentAuctionId;
-      patchState(next);
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Não foi possível começar o próximo leilão.');
-    }
-  };
-
   const purchasePackage = async () => {
     if (!selectedPackage || packageMutation.isPending) return;
     try {
@@ -1182,15 +1151,8 @@ function LanceCash() {
     verificationTarget?.auctionId === currentAuction.id &&
     verificationTarget.deadlineAt === currentAuction.deadlineAt,
   );
-  const canStartNextAuction = currentIsEnded && (
-    isVisibleCurrent
-      ? auctions[currentIndex + 1]?.status === 'upcoming'
-      : visibleIndex === currentIndex + 1 && visibleAuction.status === 'upcoming'
-  );
-  const showSecondaryAction = canStartNextAuction || !isVisibleCurrent;
-  const secondaryActionLabel = canStartNextAuction
-    ? isVisibleCurrent ? 'Iniciar próximo leilão' : 'Iniciar este leilão'
-    : currentAuction.status === 'live' ? 'Voltar ao leilão ao vivo'
+  const showSecondaryAction = !isVisibleCurrent;
+  const secondaryActionLabel = currentAuction.status === 'live' ? 'Voltar ao leilão ao vivo'
       : currentAuction.status === 'ended' ? 'Voltar ao leilão mais recente'
         : 'Ir para o leilão atual';
   const buttonDisabled = !isVisibleCurrent ||
@@ -1411,8 +1373,7 @@ function LanceCash() {
           <button
             className="lc-cta secondary"
             type="button"
-            onClick={() => canStartNextAuction ? void startNextAuction() : scrollToIndex(currentIndex)}
-            disabled={canStartNextAuction && (bidMutation.isPending || isStateUnverified)}
+            onClick={() => scrollToIndex(currentIndex)}
             data-testid="button-secondary-auction-action"
           >
             {secondaryActionLabel}
