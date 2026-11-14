@@ -160,8 +160,9 @@
 .adm-bid-table td { height: 53px; padding: 8px 10px; border-bottom: 1px solid #eff0e9; font-size: 12px; }
 .adm-bid-number { color: #586e32; font: 700 11px 'DM Mono', monospace; }
 .adm-bidder { font-weight: 650; }
-.adm-bid-type { display: inline-flex; align-items: center; gap: 5px; color: #72786c; font-size: 10px; }
-.adm-bid-type.system { color: #657f36; }
+.adm-bid-source { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 3px; color: #42483b; line-height: 1.25; }
+.adm-bid-source strong { font-size: 10px; font-weight: 700; }
+.adm-bid-source code { color: #858a7f; font: 9px 'DM Mono', monospace; white-space: nowrap; }
 .adm-bid-date { color: #83887d; font: 10px 'DM Mono', monospace; white-space: nowrap; }
 .adm-load-older { min-height: 66px; display: flex; align-items: center; justify-content: center; position: relative; }
 .adm-load-older > span { position: absolute; right: 0; color: #999d93; font: 9px 'DM Mono', monospace; }
@@ -227,7 +228,7 @@
   .adm-history-summary { gap: 10px 15px; flex-wrap: wrap; font-size: 10px; }
   .adm-search input { font-size: 11px; }
   .adm-search kbd { display: none; }
-  .adm-bid-table { min-width: 500px; }
+  .adm-bid-table { min-width: 590px; }
   .adm-load-older { flex-direction: column; gap: 7px; padding: 10px 0; }
   .adm-load-older > span { position: static; }
   .adm-footer { font-size: 8px; }

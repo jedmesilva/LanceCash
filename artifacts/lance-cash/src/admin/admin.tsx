@@ -26,6 +26,12 @@ const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL
 const dateTime = (value: string | null) => value
   ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
   : '—';
+const bidSourceLabels: Record<AdminAuctionBid['source'], string> = {
+  user_manual: 'Usuário (manual)',
+  user_automation: 'Automação do usuário',
+  system_automation: 'Automação do sistema',
+  system_admin: 'Administrador do sistema',
+};
 
 function Skeleton({ rows = 3 }: { rows?: number }) {
   return <div className="adm-skeletons" aria-label="Carregando" aria-busy="true">{Array.from({ length: rows }, (_, i) => <i key={i} />)}</div>;
@@ -249,7 +255,7 @@ export function AdminAuctionDetailPage() {
       {history.data && <div className="adm-history-summary"><span><b>{fmt.format(history.data.auction.bidCount)}</b> total bids</span><span>Leader <b>{history.data.auction.leader || '—'}</b></span><span>Started {dateTime(history.data.auction.startedAt)}</span></div>}
       <label className="adm-search"><Search size={17} /><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search bidder, bid number, or system bid" aria-label="Search bid history" data-testid="input-search-bids" />{search && <button onClick={() => setSearch('')} type="button" data-testid="button-clear-bid-search">Clear</button>}<kbd>/</kbd></label>
       {history.isLoading ? <Skeleton rows={7} /> : history.isError ? <ErrorNotice retry={() => void history.refetch()} /> : bids.length === 0 ? <div className="adm-empty"><Search size={20} /><p>{search ? 'No bids match this search.' : 'No bids have been placed in this auction.'}</p></div> : <>
-        <div className="adm-bid-table-wrap"><table className="adm-bid-table"><thead><tr><th>Bid</th><th>Bidder</th><th>Type</th><th>Placed</th></tr></thead><tbody>{bids.map((bid) => <tr key={bid.id} data-testid={`row-bid-${bid.id}`}><td><span className="adm-bid-number">#{fmt.format(bid.number)}</span></td><td className="adm-bidder">{bid.leader}</td><td><span className={`adm-bid-type ${bid.isSystem ? 'system' : ''}`}>{bid.isSystem ? <><Bot size={13} /> System</> : 'Manual'}</span></td><td className="adm-bid-date">{dateTime(bid.createdAt)}</td></tr>)}</tbody></table></div>
+         <div className="adm-bid-table-wrap"><table className="adm-bid-table"><thead><tr><th>Bid</th><th>Bidder</th><th>Source</th><th>Placed</th></tr></thead><tbody>{bids.map((bid) => <tr key={bid.id} data-testid={`row-bid-${bid.id}`}><td><span className="adm-bid-number">#{fmt.format(bid.number)}</span></td><td className="adm-bidder">{bid.leader}</td><td><span className="adm-bid-source" data-testid={`text-bid-source-${bid.id}`}><strong>{bidSourceLabels[bid.source]}</strong><code>{bid.source}</code></span></td><td className="adm-bid-date">{dateTime(bid.createdAt)}</td></tr>)}</tbody></table></div>
         {history.data?.hasMore && <div className="adm-load-older"><Button variant="outline" onClick={loadOlder} disabled={history.isFetching} data-testid="button-load-older-bids"><ArrowDown size={15} />{history.isFetching ? 'Loading older bids…' : 'Load older bids'}</Button><span>{olderCursors.length ? `${olderCursors.length} older page${olderCursors.length === 1 ? '' : 's'} loaded` : 'Most recent bids first'}</span></div>}
       </>}
       {history.isFetching && !history.isLoading && <div className="adm-search-loading"><LoaderCircle size={14} className="adm-spin" /> Updating results</div>}
