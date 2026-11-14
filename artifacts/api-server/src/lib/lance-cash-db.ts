@@ -455,53 +455,53 @@ async function mapAuctionStates(
   userId: string | null,
   currentAuctionId: number,
 ) {
-  return Promise.all(
-    auctions.map(async (auction) => {
-      const bidRecords = await tx
-        .select()
+  const states = [];
+  for (const auction of auctions) {
+    const bidRecords = await tx
+      .select()
+      .from(auctionBidsTable)
+      .where(eq(auctionBidsTable.auctionId, auction.id))
+      .orderBy(desc(auctionBidsTable.bidNumber))
+      .limit(historyPageSize);
+    let usedBids = 0;
+    if (userId && auction.id === currentAuctionId) {
+      const [usedBidsResult] = await tx
+        .select({ value: count() })
         .from(auctionBidsTable)
-        .where(eq(auctionBidsTable.auctionId, auction.id))
-        .orderBy(desc(auctionBidsTable.bidNumber))
-        .limit(historyPageSize);
-      let usedBids = 0;
-      if (userId && auction.id === currentAuctionId) {
-        const [usedBidsResult] = await tx
-          .select({ value: count() })
-          .from(auctionBidsTable)
-          .where(
-            and(
-              eq(auctionBidsTable.auctionId, currentAuctionId),
-              eq(auctionBidsTable.userId, userId),
-            ),
-          );
-        usedBids = usedBidsResult?.value ?? 0;
-      }
+        .where(
+          and(
+            eq(auctionBidsTable.auctionId, currentAuctionId),
+            eq(auctionBidsTable.userId, userId),
+          ),
+        );
+      usedBids = usedBidsResult?.value ?? 0;
+    }
 
-      return {
-        id: auction.id,
-        prize: Math.round(auction.prizeAmountCents / 100),
-        status: auction.status,
-        bidCount: auction.bidCount,
+    states.push({
+      id: auction.id,
+      prize: Math.round(auction.prizeAmountCents / 100),
+      status: auction.status,
+      bidCount: auction.bidCount,
+      leader:
+        userId !== null && auction.currentLeaderUserId === userId
+          ? "Você"
+          : auction.currentLeaderName,
+      startedAt: toIso(auction.startedAt),
+      deadlineAt:
+        auction.status === "live" && auction.bidCount === 0
+          ? null
+          : toIso(auction.deadlineAt),
+      usedBids,
+      bids: bidRecords.map((bid) => ({
+        number: bid.bidNumber,
         leader:
-          userId !== null && auction.currentLeaderUserId === userId
-            ? "Você"
-            : auction.currentLeaderName,
-        startedAt: toIso(auction.startedAt),
-        deadlineAt:
-          auction.status === "live" && auction.bidCount === 0
-            ? null
-            : toIso(auction.deadlineAt),
-        usedBids,
-        bids: bidRecords.map((bid) => ({
-          number: bid.bidNumber,
-          leader:
-            userId !== null && bid.userId === userId ? "Você" : bid.bidderName,
-          createdAt: bid.createdAt.toISOString(),
-        })),
-        historyHasMore: auction.bidCount > bidRecords.length,
-      };
-    }),
-  );
+          userId !== null && bid.userId === userId ? "Você" : bid.bidderName,
+        createdAt: bid.createdAt.toISOString(),
+      })),
+      historyHasMore: auction.bidCount > bidRecords.length,
+    });
+  }
+  return states;
 }
 
 export async function readState(userId: string) {

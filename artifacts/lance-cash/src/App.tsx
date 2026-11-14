@@ -345,6 +345,8 @@ function LanceCash() {
   const loadedAuctions = loadedAuctionState.scope === auctionScope
     ? loadedAuctionState.auctions
     : [];
+  const loadedFirstAuctionId = loadedAuctions[0]?.id;
+  const loadedLastAuctionId = loadedAuctions.at(-1)?.id;
   const auctions = mergeAuctions(loadedAuctions, state?.auctions ?? []);
   const hasMorePreviousAuctions = auctionPageAvailability.scope === auctionScope
     ? auctionPageAvailability.previous
@@ -465,6 +467,32 @@ function LanceCash() {
     if (state?.serverTime) serverOffsetRef.current = Date.parse(state.serverTime) - Date.now();
   }, [state?.serverTime]);
 
+  useEffect(() => {
+    if (!state) return;
+    const stateFirstId = state.auctions[0]?.id;
+    const stateLastId = state.auctions.at(-1)?.id;
+    setAuctionPageAvailability((current) => {
+      const keepPrevious = current.scope === auctionScope &&
+        stateFirstId !== undefined &&
+        loadedFirstAuctionId !== undefined &&
+        loadedFirstAuctionId < stateFirstId;
+      const keepNext = current.scope === auctionScope &&
+        stateLastId !== undefined &&
+        loadedLastAuctionId !== undefined &&
+        loadedLastAuctionId > stateLastId;
+      const next = {
+        scope: auctionScope,
+        previous: keepPrevious ? current.previous : state.auctionPagination.hasPrevious,
+        next: keepNext ? current.next : state.auctionPagination.hasNext,
+      };
+      return current.scope === next.scope &&
+        current.previous === next.previous &&
+        current.next === next.next
+        ? current
+        : next;
+    });
+  }, [state, auctionScope, loadedFirstAuctionId, loadedLastAuctionId]);
+
   useLayoutEffect(() => {
     if (!state) return;
 
@@ -521,8 +549,21 @@ function LanceCash() {
     setHistoryExtra({});
     setHistoryHasMoreByAuction({});
     setHistoryRequest(null);
+    setLoadedAuctionState({ scope: auctionScope, auctions: [] });
+    setAuctionPageAvailability({
+      scope: auctionScope,
+      previous: state?.auctionPagination.hasPrevious ?? false,
+      next: state?.auctionPagination.hasNext ?? false,
+    });
+    setLoadingAuctionPages({ scope: auctionScope, previous: false, next: false });
+    auctionPageLoadingRef.current.clear();
+    failedAuctionPageRequestsRef.current.clear();
+    pendingAuctionAnchorRef.current = null;
+    auctionNavigationRef.current = null;
+    auctionScrollTargetRef.current = null;
     queryClient.removeQueries({ queryKey: ['/api/lance-cash/bids/history'] });
-  }, [isAuthenticated ? authQuery.data?.user.id : null, isAuthenticated, queryClient]);
+    queryClient.removeQueries({ queryKey: ['/api/lance-cash/auctions'] });
+  }, [auctionScope, queryClient]);
 
   useEffect(() => {
     auctionNavigationRef.current = null;
