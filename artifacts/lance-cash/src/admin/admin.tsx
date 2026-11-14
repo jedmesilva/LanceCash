@@ -149,6 +149,7 @@ function SystemSettings({ enabled, onClose }: { enabled: boolean; onClose: () =>
       </div>
       <div className="adm-switch-control">
         <Switch
+          className="adm-automation-switch"
           checked={nextValue}
           onCheckedChange={setNextValue}
           aria-label={nextValue ? 'Disable automated system bids' : 'Enable automated system bids'}

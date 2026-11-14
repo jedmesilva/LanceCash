@@ -135,6 +135,7 @@
 .adm-switch-row strong { font-size: 13px; }
 .adm-switch-row p { margin: 5px 0 0; color: #81867a; font-size: 11px; }
 .adm-switch-control { display: inline-flex; flex: none; align-items: center; }
+.adm-switch-row button.adm-automation-switch[data-state="unchecked"] { background-color: #68715b; border-color: #4f5842; }
 .adm-back { display: inline-flex; align-items: center; gap: 7px; border: 0; padding: 0; margin: 0 0 22px; background: transparent; color: #74796d; cursor: pointer; font-size: 12px; font-weight: 600; }
 .adm-back:hover { color: var(--adm-ink); }
 .adm-directory { margin-top: 4px; }
