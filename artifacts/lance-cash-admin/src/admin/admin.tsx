@@ -106,6 +106,8 @@ function AdminShell({ children }: { children: ReactNode }) {
     void queryClient.invalidateQueries({ queryKey: getGetAdminOverviewQueryKey() });
     void queryClient.invalidateQueries({ queryKey: getGetAdminAuctionsQueryKey() });
     void queryClient.invalidateQueries({ queryKey: getGetAdminAuctionBidsQueryKey() });
+    void queryClient.invalidateQueries({ queryKey: getGetAdminRedemptionsQueryKey() });
+    void queryClient.invalidateQueries({ queryKey: getGetAdminCashQueryKey() });
   };
   if (session.isLoading) return <main className="adm-root"><div className="adm-frame"><Skeleton rows={5} /></div></main>;
   if (session.isError && (session.error as { status?: number }).status !== 401) {
@@ -127,6 +129,8 @@ function AdminShell({ children }: { children: ReactNode }) {
         <button className="adm-button adm-logout" onClick={() => logout.mutate(undefined, { onSuccess: () => {
           void queryClient.invalidateQueries({ queryKey: getGetAdminSessionQueryKey() });
           void queryClient.invalidateQueries({ queryKey: getGetAdminOverviewQueryKey() });
+          void queryClient.invalidateQueries({ queryKey: getGetAdminRedemptionsQueryKey() });
+          void queryClient.invalidateQueries({ queryKey: getGetAdminCashQueryKey() });
           navigate('/');
         } })} disabled={logout.isPending} data-testid="button-admin-logout">
           {logout.isPending ? <LoaderCircle className="adm-spin" size={15} /> : <LogOut size={15} />}<span>Sair</span>
@@ -182,7 +186,10 @@ function RedemptionRow({ redemption, compact = false, announce }: {
         void queryClient.invalidateQueries({ queryKey: getGetAdminRedemptionsQueryKey() });
         void queryClient.invalidateQueries({ queryKey: getGetAdminCashQueryKey() });
       },
-      onError: () => setError('Não foi possível atualizar este resgate. Tente novamente.'),
+      onError: () => {
+        setError('Não foi possível atualizar este resgate. Tente novamente.');
+        void queryClient.invalidateQueries({ queryKey: getGetAdminRedemptionsQueryKey() });
+      },
     });
   };
   return <article className={`adm-redemption-row${compact ? ' is-compact' : ''}`} data-testid={`row-redemption-${redemption.id}`}>
@@ -237,13 +244,13 @@ function RedemptionRow({ redemption, compact = false, announce }: {
 
 function RedemptionQueue({ limit, compact = false }: { limit: number; compact?: boolean }) {
   const [announcement, setAnnouncement] = useState('');
-  const params = useMemo<GetAdminRedemptionsParams>(() => ({ limit }), [limit]);
+  const params = useMemo<GetAdminRedemptionsParams>(() => ({ status: 'requested', offset: 0, limit }), [limit]);
   const query = useGetAdminRedemptions(params, { query: { queryKey: getGetAdminRedemptionsQueryKey(params) } });
   const response = query.data;
   return <section className={`adm-redemption-panel${compact ? ' is-compact' : ''}`} aria-label="Fila de resgates">
     <header className="adm-redemption-panel-head">
       <div><p className="adm-eyebrow">PRÊMIOS / REVISÃO DA EQUIPE</p><h2>{compact ? 'Resgates para revisar' : 'Fila de resgates'}</h2></div>
-      {response && <span className="adm-count" data-testid="text-redemption-total">{fmt.format(response.summary.totalCount)} no total</span>}
+      {response && <span className="adm-count" data-testid="text-redemption-total">{fmt.format(response.totalCount)} solicitações</span>}
     </header>
     {compact && response && <div className="adm-redemption-quick-counts" aria-label="Resumo dos resgates">
       <span><b>{fmt.format(response.summary.requested)}</b> solicitados</span>

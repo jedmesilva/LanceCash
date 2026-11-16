@@ -58,10 +58,10 @@ const bidderNames = [
   "Bruno D.",
 ];
 const packageSeeds = [
-  { id: "starter", baseBids: 15, bonusBids: 0, priceCents: 1500, label: "Para começar", sortOrder: 1 },
-  { id: "value", baseBids: 50, bonusBids: 5, priceCents: 4500, label: null, sortOrder: 2 },
-  { id: "popular", baseBids: 120, bonusBids: 20, priceCents: 9900, label: "Mais popular", sortOrder: 3 },
-  { id: "best", baseBids: 300, bonusBids: 75, priceCents: 21000, label: "Melhor valor", sortOrder: 4 },
+  { id: "starter", baseBids: 10, bonusBids: 0, priceCents: 1000, label: "Para começar", sortOrder: 1 },
+  { id: "value", baseBids: 20, bonusBids: 5, priceCents: 2000, label: null, sortOrder: 2 },
+  { id: "popular", baseBids: 50, bonusBids: 20, priceCents: 5000, label: "Mais popular", sortOrder: 3 },
+  { id: "best", baseBids: 100, bonusBids: 80, priceCents: 10000, label: "Melhor valor", sortOrder: 4 },
 ];
 const upcomingPrizesCents = [50_000, 200_000, 100_000, 500_000, 100_000, 50_000, 200_000];
 
