@@ -1351,7 +1351,7 @@ function LanceCash() {
                       {serverConnectionLost && isVerifyingAuction ? 'Sem conexão — resultado ainda não confirmado'
                         : isVerifyingAuction ? 'O servidor ainda está confirmando o resultado'
                         : connectionNotice ?? (upcoming ? 'Começa quando o leilão anterior encerrar' : isOpenForFirstBid
-                          ? 'Dê o primeiro lance para iniciar a contagem de 15 s'
+                          ? 'Dê o primeiro lance para iniciar a disputa'
                           : ended
                           ? mine ? `Você levou os ${BRL2.format(auction.prize)}` : `Levou os ${BRL2.format(auction.prize)}`
                           : mine ? 'Ao zerar, você leva o prêmio' : 'Ao zerar, quem deu o último lance leva o prêmio')}
